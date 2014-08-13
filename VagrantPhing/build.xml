@@ -1,0 +1,919 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="eyp" default="main" phingVersion="2.5">
+
+  <!-- ============================================  -->
+  <!-- Target: hello                                 -->
+  <!-- ============================================  -->
+
+  <target name="hello" description="Says Hello" depends="init">
+    <echo msg="Hello, world!" />
+    <echo msg="${phing.dir}" />
+  </target>
+
+  <!-- ============================================  -->
+  <!-- Target: main                                  -->
+  <!-- ============================================  -->
+
+  <!-- This is the default target. -->
+
+  <target name="main" depends="init">
+
+    <if>
+      <available file="${project.drupal.dir}" type="dir" />
+      <then>
+        <phingcall target="update" />
+      </then>
+      <else>
+        <phingcall target="build" />
+      </else>
+    </if>
+
+  </target>
+
+  <!-- ============================================  -->
+  <!-- Target: build                                 -->
+  <!-- ============================================  -->
+
+  <!-- Do a complete build of the project by verifying code
+       consistency and and performing static analysis of the code. -->
+
+  <target name="build" depends="init, make, site-install" />
+
+  <!-- ============================================  -->
+  <!-- Target: qa                                    -->
+  <!-- ============================================  -->
+
+  <target name="qa" depends="init, run-tests, cs" />
+
+  <!-- ============================================  -->
+  <!-- Target: run-tests                             -->
+  <!-- ============================================  -->
+
+  <target name="run-tests" depends="init">
+
+    <echo>Creating behat.yml file.</echo>
+    <copy file="behat.yml.dist" tofile="behat.yml" overwrite="true">
+      <filterchain>
+        <expandproperties />
+      </filterchain>
+    </copy>
+
+    <!-- Runs a lightweight built in http server for testing. -->
+    <!-- <drush command="rs"> -->
+    <!--   <option name="server">builtin</option> -->
+    <!--   <param>localhost:9000</param> -->
+    <!-- </drush> -->
+
+    <!-- start selenium server in the background -->
+    <exec command="java -jar ${phing.dir}/bin/selenium-server-standalone.jar -port ${selenium.port}" spawn="true" />
+
+    <!-- start phantomjs -->
+    <exec command="${phing.dir}/bin/phantomjs --webdriver=${phantomjs.port}" spawn="true" />
+
+    <exec command="${phing.dir}/bin/behat --ansi --profile jenkins" passthru="true" />
+
+    <!-- stop selenium server -->
+    <exec command="wget -O - -q -t 1 http://localhost:{selenium.port}/selenium-server/driver/?cmd=shutDownSeleniumServer" passthru="true" />
+
+    <!-- stop phantomjs -->
+    <!-- FIXME: we should find another way to exit phantomjs!! -->
+    <exec command="killall phantomjs" passthru="true" />
+
+  </target>
+
+  <!-- ==================================  -->
+  <!-- Target: run-tests-playground        -->
+  <!-- ==================================  -->
+
+  <target name="run-tests-playground" depends="init, setup-dirs">
+
+    <echo>Creating behat.yml file.</echo>
+    <copy file="behat.yml.dist" tofile="behat.yml" overwrite="true">
+      <filterchain>
+        <expandproperties />
+      </filterchain>
+    </copy>
+
+    <exec command="java -jar ${phing.dir}/bin/selenium-server-standalone.jar -port ${selenium.port}" spawn="true" />
+    <exec command="${phing.dir}/bin/phantomjs --webdriver=${phantomjs.port}" spawn="true" />
+
+    <exec command="${phing.dir}/bin/behat --ansi --profile playground --format pretty,junit --out ,${project.testdir}" passthru="true" />
+
+    <exec command="wget -O - -q -t 1 http://localhost:{selenium.port}/selenium-server/driver/?cmd=shutDownSeleniumServer" passthru="true" />
+    <exec command="killall phantomjs" passthru="true" />
+
+  </target>
+
+  <!-- ==================================  -->
+  <!-- Target: run-tests-production        -->
+  <!-- ==================================  -->
+
+  <target name="run-tests-production" depends="init, setup-dirs">
+
+    <echo>Creating behat.yml file.</echo>
+    <copy file="behat.yml.dist" tofile="behat.yml" overwrite="true">
+      <filterchain>
+        <expandproperties />
+      </filterchain>
+    </copy>
+
+    <exec command="${phing.dir}/bin/behat --ansi --profile production --format pretty,junit --out ,${project.testdir}" passthru="true" />
+
+  </target>
+
+  <!-- ============================================  -->
+  <!-- Target: update                                -->
+  <!-- ============================================  -->
+
+  <target name="update" depends="init, setup-phing-drush">
+
+    <drush command="updatedb" assume="yes" />
+
+    <drush command="cache-clear" assume="yes">
+      <param>all</param>
+    </drush>
+
+    <drush command="features-revert" assume="yes">
+      <param>${project.modules.custom}</param>
+    </drush>
+
+    <if>
+      <equals arg1="${import.po.files}" arg2="true" />
+      <then>
+        <phingcall target="update-translations" />
+      </then>
+    </if>
+
+    <drush command="cache-clear" assume="yes">
+      <param>all</param>
+    </drush>
+
+  </target>
+
+  <!-- ============================================  -->
+  <!-- Target: update-translations                   -->
+  <!-- ============================================  -->
+
+  <target name="update-translations" depends="init, setup-phing-drush">
+    <drush command="l10n-update-refresh" />
+    <drush command="l10n-update" />
+  </target>
+
+  <!-- ============================================  -->
+  <!-- Target: make                                  -->
+  <!-- ============================================  -->
+
+  <target name="make" depends="load-properties, setup-phing-drush"
+          if="drupal.make.file">
+
+    <!-- Delete any pre-existing builds -->
+    <if>
+      <available file="${project.drupal.dir}" type="dir" />
+      <then>
+        <!-- <chmod file="${project.drupal.dir}/sites/default" mode="0777" failonerror="false" /> -->
+        <delete dir="${project.drupal.dir}" />
+      </then>
+    </if>
+
+    <!-- create lib/MULTISITE link to use the correct make file -->
+    <symlink target="${project.basedir}/lib/MULTISITE-${multisite.version}" link="${project.basedir}/lib/MULTISITE" overwrite="true" />
+
+    <drush command="make" assume="yes">
+      <param>${drupal.make.file}</param>
+      <param>${drupal.make.dir}</param>
+    </drush>
+
+    <mkdir dir="${project.drupal.dir}/sites/all/modules/contributed" />
+    <mkdir dir="${project.drupal.dir}/sites/all/modules/custom" />
+    <mkdir dir="${project.drupal.dir}/sites/all/modules/modified" />
+    <mkdir dir="${project.drupal.dir}/sites/all/modules/features" />
+    <mkdir dir="${project.drupal.dir}/sites/all/modules/features/custom" />
+    <mkdir dir="${project.drupal.dir}/sites/default/files/private_files" />
+
+    <!-- symlink EYP modules -->
+    <if>
+      <available file='${project.basedir}/modules/features/custom/eyp' type='dir' />
+      <then>
+        <symlink target="${project.basedir}/modules/features/custom/eyp" link="${project.drupal.dir}/sites/all/modules/features/custom/eyp" />
+        <symlink target="${project.basedir}/modules/custom/ec_manage_local_eyp" link="${project.drupal.dir}/sites/all/modules/custom/ec_manage_local_eyp" />
+
+      </then>
+
+      <else>
+        <symlink target="${project.basedir}/modules/eyp" link="${project.drupal.dir}/sites/all/modules/features/custom/eyp" />
+        <symlink target="${project.basedir}/modules/ec/ec_manage_local_eyp" link="${project.drupal.dir}/sites/all/modules/custom/ec_manage_local_eyp" />
+
+      </else>
+    </if>
+
+    <!-- symlink EYP theme -->
+    <symlink link="${project.drupal.dir}/sites/all/themes">
+      <fileset dir="${project.basedir}/themes">
+        <include name="*" />
+      </fileset>
+    </symlink>
+
+    <!-- symlink EYP translations -->
+    <symlink target="${project.basedir}/translations" link="${project.drupal.dir}/sites/all/translations" />
+
+    <!-- symlink MULTISITE profiles -->
+    <symlink link="${project.drupal.dir}/profiles">
+      <fileset dir="${multisite.base.dir}/profiles">
+        <include name="*" />
+      </fileset>
+    </symlink>
+
+    <!-- symlink MULTISITE themes -->
+    <symlink link="${project.drupal.dir}/sites/all/themes">
+      <fileset dir="${multisite.base.dir}/sites/all/themes">
+        <include name="*" />
+      </fileset>
+    </symlink>
+
+    <!-- symlink MULTISITE libraries -->
+    <symlink link="${project.drupal.dir}/sites/all/libraries">
+      <fileset dir="${multisite.base.dir}/sites/all/libraries">
+        <include name="*" />
+      </fileset>
+    </symlink>
+
+    <!-- symlink MULTISITE modules -->
+    <symlink link="${project.drupal.dir}/sites/all/modules/custom">
+      <fileset dir="${multisite.base.dir}/sites/all/modules/custom">
+        <include name="*" />
+      </fileset>
+    </symlink>
+
+    <symlink link="${project.drupal.dir}/sites/all/modules/modified">
+      <fileset dir="${multisite.base.dir}/sites/all/modules/modified">
+        <include name="*" />
+      </fileset>
+    </symlink>
+
+    <symlink link="${project.drupal.dir}/sites/all/modules/features">
+      <fileset dir="${multisite.base.dir}/sites/all/modules/features/custom">
+        <include name="*" />
+      </fileset>
+    </symlink>
+
+    <!-- Copy default images in files/ folder -->
+    <copy todir="${project.drupal.dir}/sites/default/files">
+      <fileset dir="${multisite.base.dir}/sites/default/files/default_images" />
+    </copy>
+
+    <!-- Apply patches -->
+    <foreach param="filename" absparam="absfilename" target="apply-patch">
+      <fileset dir="${multisite.patch.dir}">
+        <include name="*.patch" />
+      </fileset>
+    </foreach>
+
+  </target>
+
+  <!-- ============================================  -->
+  <!-- Target: apply-patch                           -->
+  <!-- ============================================  -->
+
+  <target name="apply-patch">
+
+    <echo msg="Apply patch ${absfilename}" />
+    <!-- <patch patchfile="${absfilename}" dir="${drupal.make.dir}" -->
+    <!--        backups="true" haltonfailure="true" /> -->
+
+    <exec command="patch --directory=${drupal.make.dir} --batch -p0 --backup --input=${absfilename}"
+          passthru="true" />
+
+  </target>
+
+  <!-- ============================================  -->
+  <!-- Target: site-install                          -->
+  <!-- ============================================  -->
+
+  <target name="site-install" depends="init, setup-phing-drush"
+          unless="project.installed">
+
+    <property name="drupal.db.url"
+              value="${drupal.db.schema}://${drupal.db.user.name}:${drupal.db.user.pass}@${drupal.db.host}:${drupal.db.port}/${drupal.db.name}" />
+
+    <drush command="site-install" assume="yes">
+      <option name="db-url">${drupal.db.url}</option>
+      <!-- <option name="sites-subdir">${drupal.db.url}</option> -->
+      <option name="account-name">${drupal.account.name}</option>
+      <option name="account-pass">${drupal.account.pass}</option>
+      <option name="account-mail">${drupal.account.mail}</option>
+      <option name="site-name">${drupal.site.name}</option>
+      <option name="site-mail">${drupal.site.mail}</option>
+      <option name="clean-url">1</option>
+      <param>${drupal.profile}</param>
+    </drush>
+
+    <drush command="vset" assume="yes">
+      <param>multisite_version</param>
+      <param>${multisite.version}</param>
+      <option name="format">string</option>
+    </drush>
+
+    <phingcall target="solr" />
+    <phingcall target="iam" />
+    <phingcall target="ecas" />
+    <phingcall target="sybase" />
+    <phingcall target="activemq" />
+
+    <if>
+      <equals arg1="${eyp.install}" arg2="true" />
+      <then>
+
+    <!-- enable MULTISITE modules -->
+    <drush command="pm-enable" assume="yes">
+      <param>${multisite.modules}</param>
+    </drush>
+
+    <!-- enable EYP modules -->
+    <drush command="pm-enable" assume="yes">
+      <param>${project.modules.custom}</param>
+    </drush>
+
+    <!-- enable EYP themes -->
+    <drush command="pm-enable" assume="yes">
+      <param>${project.themes}</param>
+    </drush>
+
+    <if>
+      <equals arg1="${import.po.files}" arg2="true" />
+      <then>
+        <phingcall target="update-translations" />
+        <drush command="eyp-language-import" />
+      </then>
+    </if>
+
+    <phingcall target="setup-permissions" />
+
+    <if>
+      <equals arg1="${generate.content}" arg2="true" />
+      <then>
+        <phingcall target="generate-content" />
+      </then>
+    </if>
+
+    </then>
+    <else>
+      <drush command="pm-enable" assume="yes">
+        <param>${project.featureset.module}</param>
+      </drush>
+    </else>
+    </if>
+
+    <!-- Set property to prevent target from being executed multiple times -->
+    <property name="project.installed" value="true" />
+
+  </target>
+
+  <!-- ============================================  -->
+  <!-- Target: generate-content                      -->
+  <!-- ============================================  -->
+
+  <target name="generate-content" depends="init, setup-phing-drush">
+
+    <drush command="eyp-dev-generate-users" />
+    
+    <!-- Import Youthlink data -->
+    <if>
+      <available filepath="${youthlink.csv.path}" file="${youthlink.csv.file}" />
+      <then>
+        <echo>Importing file ${youthlink.csv.file} ...</echo>
+        <drush command="vp-organisation-import-csv">
+          <option name="csv">${youthlink.csv.path}/${youthlink.csv.file}</option>
+        </drush>
+      </then>
+      <else>
+        <echo>File ${youthlink.csv.file} not found.</echo>
+      </else>
+    </if>
+
+  </target>
+
+  <!-- ============================================  -->
+  <!-- Target: phploc                                -->
+  <!-- ============================================  -->
+
+  <target name="phploc" depends="init">
+
+    <phploc reportType="csv"
+            reportName="phploc" resportDirectory="${project.logdir}"
+            suffixes="php,module,inc,install,profile,test" countTests="true">
+      <fileset refid="src.php.custom" />
+    </phploc>
+
+  </target>
+
+  <!-- ============================================  -->
+  <!-- Target: cs                                    -->
+  <!-- ============================================  -->
+
+  <target name="cs" depends="init, setup-phing-drush">
+
+    <delete dir="${project.logdir}"/>
+    <mkdir dir="${project.logdir}"/>
+
+    <drush command="dcs" assume="yes" haltonerror="no">
+      <option name="report-file">${project.logdir}/checkstyle-modules.xml</option>
+      <option name="report">checkstyle</option>
+      <param>modules</param>
+    </drush>
+
+    <drush command="dcs" assume="yes" haltonerror="no">
+      <option name="report-file">${project.logdir}/checkstyle-themes.xml</option>
+      <option name="report">checkstyle</option>
+      <param>themes</param>
+    </drush>
+
+  </target>
+
+  <!-- ============================================  -->
+  <!-- Target: init                                  -->
+  <!-- ============================================  -->
+
+  <!-- Initialization: This target sets up many of the common
+       resources used throughout the build. -->
+
+  <target name="init" depends="load-properties, setup-dirs, setup-filesets"
+          unless="project.initialized">
+
+    <!-- Set property to prevent target from being executed multiple times -->
+    <property name="project.initialized" value="true"/>
+
+  </target>
+
+  <!-- ============================================  -->
+  <!-- Target: load-properties                       -->
+  <!-- ============================================  -->
+
+  <target name="load-properties">
+
+    <property file="${phing.dir}/build.default.properties" />
+    <property file="${phing.dir}/build.properties" override="true" />
+
+    <property name="project.basedir" value="${phing.dir}" />
+    <property name="project.logdir" value="${project.builddir}/logs" />
+
+    <property name="multisite.patch.dir" value="${project.basedir}/${multisite.base.dir}/patches" />
+
+  </target>
+
+  <!-- ============================================  -->
+  <!-- Target: setup-dirs                            -->
+  <!-- ============================================  -->
+
+  <target name="setup-dirs" depends="load-properties">
+
+    <property name="project.drupal.dir"
+              value="${project.basedir}/${drupal.make.dir}" />
+
+    <property name="project.sitesdir"
+              value="${project.drupal.dir}/${project.code.dir}" />
+
+    <property name="project.builddir"
+              value="${project.basedir}/build" />
+
+    <property name="project.toolsdir"
+              value="${project.builddir}/tools" />
+
+    <property name="project.coveragedir"
+              value="${project.builddir}/coverage" />
+
+    <property name="project.logdir"
+              value="${project.builddir}/logs" />
+
+    <property name="project.testdir"
+              value="${project.builddir}/tests" />
+
+  </target>
+
+  <!-- ============================================  -->
+  <!-- Target: setup-filesets                        -->
+  <!-- ============================================  -->
+
+  <!-- Setup file sets - patterns for different aspects of the source
+       code. These are used in other targets. -->
+
+  <target name="setup-filesets" depends="load-properties">
+
+    <!-- PHP files -->
+
+    <patternset id="php">
+      <include name="**/*.php" />
+      <include name="**/*.module" />
+      <include name="**/*.install" />
+      <include name="**/*.inc" />
+      <include name="**/*.profile" />
+      <include name="**/*.test" />
+    </patternset>
+
+    <!-- Javascript files. Minimized JavaScript files should not be
+         analyzed. In their optimized state they can not be expexted
+         to conform to coding standards. -->
+
+    <patternset id="js">
+      <include name="**/*.js" />
+      <exclude name="**/*.min.js" />
+    </patternset>
+
+    <!-- CSS files -->
+
+    <patternset id="css">
+      <include name="**/*.css" />
+    </patternset>
+
+    <!-- Directories for community contributed code. We exclude these
+         from code analysis as we cannot be held responsible for any
+         problems here. -->
+
+    <patternset id="contrib">
+      <exclude name="**/contrib/**/*.*" />
+      <exclude name="**/libraries/**/*.*" />
+    </patternset>
+
+    <!-- We exclude generated files from We exclude these from code
+         analysis as we cannot be held responsible for any problems
+         here. -->
+
+    <patternset id="generated">
+      <exclude name="**/*.features.*" />
+      <exclude name="**/*.field_group.inc" />
+      <exclude name="**/*.layouts.inc" />
+      <exclude name="**/*.pages_default.inc" />
+      <exclude name="**/*.panelizer.inc" />
+      <exclude name="**/*.panels_default.inc" />
+      <exclude name="**/*.strongarm.inc" />
+      <exclude name="**/*.views_default.inc" />
+    </patternset>
+
+    <!-- Define file sets for future reference -->
+
+    <!-- All PHP files -->
+    <fileset id="src.php" dir="${project.drupal.dir}">
+      <patternset refid="php"/>
+    </fileset>
+
+    <!-- Custom PHP files -->
+    <fileset id="src.php.custom" dir="${project.sitesdir}">
+      <patternset refid="php"/>
+      <patternset refid="contrib"/>
+      <patternset refid="generated"/>
+    </fileset>
+
+    <!-- All Javascript files -->
+    <fileset id="src.js" dir="${project.drupal.dir}">
+      <patternset refid="js" />
+    </fileset>
+
+    <!-- Custom Javascript files -->
+    <fileset id="src.js.custom" dir="${project.sitesdir}">
+      <patternset refid="js" />
+      <patternset refid="contrib" />
+    </fileset>
+
+    <!-- All CSS files -->
+    <fileset id="src.css" dir="${project.basedir}">
+      <patternset refid="css" />
+    </fileset>
+
+    <!-- Custom CSS files -->
+    <fileset id="src.css.custom" dir="${project.sitesdir}">
+      <patternset refid="css" />
+      <patternset refid="contrib" />
+    </fileset>
+
+  </target>
+
+  <!-- ============================================  -->
+  <!-- Target: clean                                 -->
+  <!-- ============================================  -->
+
+  <target name="clean" depends="setup-dirs" unless="project.cleaned"
+          description="Clean up and create artifact directories">
+
+    <delete dir="${project.toolsdir}"/>
+    <delete dir="${project.coveragedir}"/>
+    <delete dir="${project.logdir}"/>
+    <delete dir="${project.testdir}"/>
+
+    <mkdir dir="${project.toolsdir}"/>
+    <mkdir dir="${project.coveragedir}"/>
+    <mkdir dir="${project.logdir}"/>
+    <mkdir dir="${project.testdir}"/>
+
+    <fileset id="src.tmp.files" dir="${project.basedir}" defaultexcludes="false">
+      <include name="**/svn-commit*.tmp" />
+      <include name="**/*~" />
+      <include name="**/#*#" />
+      <include name="**/.DS_Store" />
+      <include name="**/Thumbs.db" />
+      <exclude name=".svn/**"/>
+      <exclude name=".vagrant/**"/>
+      <exclude name="www/**"/>
+    </fileset>
+
+    <delete>
+      <fileset refid="src.tmp.files" />
+    </delete>
+
+    <property name="project.cleaned" value="true"/>
+
+  </target>
+
+  <!-- ============================================  -->
+  <!-- Target: setup-permissions                     -->
+  <!-- ============================================  -->
+
+  <target name="setup-permissions" depends="setup-dirs">
+
+      <chmod mode="0777" failonerror="false">
+        <fileset dir="${project.drupal.dir}/sites/default/files" />
+      </chmod>
+
+  </target>
+
+  <!-- ============================================  -->
+  <!-- Target: setup-phing-drush                     -->
+  <!-- ============================================  -->
+
+  <target name="setup-phing-drush" depends="setup-dirs">
+
+    <!-- Use local drush if available, otherwise use those defined in
+         the configuration file -->
+    <if>
+      <available file="${project.basedir}/vendor" type="dir" />
+      <then>
+        <echo msg="Local installation detected." />
+        <property name="drush.bin" value="${phing.dir}/bin/drush" override="yes" />
+        <property name="drush.task.class" value="${project.basedir}/vendor/drupal/phing-drush-task" override="yes" />
+      </then>
+    </if>
+
+    <!-- Register as custom Phing task -->
+    <taskdef name="drush" classname="DrushTask" classpath="${drush.task.class}" />
+
+    <!-- Run drush from the project Drupal directory -->
+    <property name="drush.root" value="${project.drupal.dir}"/>
+
+    <!-- Use Drush installed by composer -->
+    <property name="drush.bin" value="${drush.bin}"/>
+
+    <!-- Assume yes by default -->
+    <property name="drush.assume" value="yes"/>
+
+  </target>
+
+  <!-- ============================================  -->
+  <!-- Target: start-qa                              -->
+  <!-- ============================================  -->
+
+  <target name="start-qa" depends="init">
+
+    <if>
+      <and>
+        <isset property="issue" />
+        <isset property="version" />
+      </and>
+
+      <then>
+        <echo msg="Creating branch qa from trunk - JIRA ticket ${issue}" />
+
+        <property name="branch.dir" value="${project.basedir}/../branches/qa" />
+
+        <!-- create new branch from trunk -->
+        <exec dir="${project.basedir}" command="svn copy --ignore-externals --non-interactive ${project.basedir} ${branch.dir}" passthru="true" />
+        <symlink target="qa" link="${project.basedir}/../branches/${version}" overwrite="true" />
+
+        <!-- FIXME: remove modules not ready for production -->
+        <!-- FIXME: we should use "project.modules.custom.excluded" in build.default.properties-->
+        <exec dir="${branch.dir}" command="svn --force --non-interactive rm modules/eyp/modules/eyp_dev" passthru="true" />
+        <exec dir="${branch.dir}" command="svn --force --non-interactive rm modules/eyp/modules/eyp_poll" passthru="true" />
+
+        <!-- update folder structure for MULTISITE -->
+        <exec dir="${branch.dir}" command="svn --parents --non-interactive mv modules/eyp modules/features/custom/eyp" passthru="true" />
+        <exec dir="${branch.dir}" command="svn --parents --non-interactive mv modules/ec modules/custom" passthru="true" />
+
+        <!-- update info files -->
+        <reflexive>
+          <fileset dir="${branch.dir}">
+            <include pattern="**/*.info" />
+          </fileset>
+          <filterchain>
+            <replaceregexp>
+              <regexp pattern="version = 7.x-dev" replace="version = 7.x-${version}" />
+            </replaceregexp>
+          </filterchain>
+        </reflexive>
+
+        <!-- update po files name -->
+        <foreach param="filename" absparam="absfilename" target="rename-po-file">
+          <fileset dir="${branch.dir}/translations">
+            <include name="default/*po" />
+            <include name="field/*po" />
+            <include name="taxonomy/*po" />
+          </fileset>
+        </foreach>
+
+        <!-- commit to SVN repository -->
+        <!-- <svncommit workingcopy="{project.basedir}/../tags" message="${issue} Create qa branch." /> -->
+        <property name="root.dir" value="${project.basedir}/.." />
+        <exec dir="${root.dir}" command="svn commit branches/qa branches/${version} -m '${issue} Create qa branch.'" passthru="true" />
+
+      </then>
+      <else>
+
+        <echo msg="Usage: phing start-qa -Dversion=2.0 -Dissue=EYP-1234" />
+        <fail message="Missing parameters." />
+
+      </else>
+    </if>
+
+  </target>
+
+  <!-- ============================================  -->
+  <!-- Target: rename-po-file                        -->
+  <!-- ============================================  -->
+
+  <target name="rename-po-file">
+
+    <php function="str_replace" returnProperty="filename.updated">
+      <param value="7.x-dev" />
+      <param value="7.x-${version}" />
+      <param value="${filename}" />
+    </php>
+
+    <exec dir="${branch.dir}/translations" command="svn --force mv ${filename} ${filename.updated}" />
+
+   </target>
+
+  <!-- ============================================  -->
+  <!-- Target: release                               -->
+  <!-- ============================================  -->
+
+  <target name="release" depends="init">
+
+    <if>
+      <and>
+        <isset property="version" />
+        <isset property="issue" />
+      </and>
+
+      <then>
+
+        <property name="branches.dir" value="${project.basedir}/../branches" />
+        <property name="tags.dir" value="${project.basedir}/../tags" />
+
+        <exec dir="${branches.dir}" command="svn --non-interactive cp qa ${tags.dir}/${version}" passthru="true" />
+
+        <!-- remove qa branch and symlink -->
+        <exec dir="${branches.dir}" command="svn rm --non-interactive --force qa" passthru="true" />
+        <exec dir="${branches.dir}" command="svn rm --non-interactive --force ${version}" passthru="true" />
+
+        <!-- commit to SVN repository -->
+        <!-- <svncommit workingcopy="{project.basedir}/../tags" message="${issue} Create qa branch." /> -->
+        <exec dir="${project.dir}/.." command="svn commit branches/qa branches/${version} tags/${version} -m '${issue} Create tag ${version} from qa branch.'" passthru="true" />
+
+      </then>
+      <else>
+
+        <echo msg="Usage: phing release -Dversion=2.0 -Dissue=EYP-1234" />
+        <fail message="Missing parameters." />
+
+      </else>
+    </if>
+
+
+  </target>
+
+  <!-- ============================================  -->
+  <!-- Target: dump                                  -->
+  <!-- ============================================  -->
+
+  <target name="dump" depends="init, setup-phing-drush">
+
+    <property name="dump.filename" value="dump-$(date +%Y-%m-%d-%H.%M.%S).sql" override="false"/>
+
+    <drush command="sql-dump" assume="yes">
+      <option name="result-file">${phing.dir}/${dump.filename}</option>
+      <option name="gzip" />
+    </drush>
+  </target>
+
+  <!-- ============================================  -->
+  <!-- Target: solr                                  -->
+  <!-- ============================================  -->
+
+  <target name="solr" depends="init, setup-phing-drush">
+
+    <!--
+        FIXME: we still need to isntall and configure Tika
+
+        apachesolr_attachments_tika_jar='tika-app-1.1.jar'
+        apachesolr_attachments_tika_path='fillme'
+        apachesolr_attachments_java='/usr/bin/java'
+
+        #set solr tika variables
+        drush vset apachesolr_attachments_tika_jar "${apachesolr_attachments_tika_jar}"
+        drush vset apachesolr_attachments_tika_path "${apachesolr_attachments_tika_path}"
+        drush vset apachesolr_attachments_java "${apachesolr_attachments_java}"
+    -->
+
+    <drush command="solr-set-env-url">
+      <param>${solr.url}</param>
+    </drush>
+
+    <drush command="sqlq">
+      <param>'UPDATE apachesolr_environment SET name = ${solr.servername} WHERE env_id = "solr"'</param>
+    </drush>
+
+    <drush command="solr-index" />
+
+  </target>
+
+  <!-- ============================================  -->
+  <!-- Target: IAM                                   -->
+  <!-- ============================================  -->
+
+  <target name="iam" depends="init, setup-phing-drush">
+    <!-- TODO -->
+  </target>
+
+  <!-- ============================================  -->
+  <!-- Target: ECAS/LDAP                             -->
+  <!-- ============================================  -->
+
+  <target name="ecas" depends="init, setup-phing-drush">
+
+    <property name="ecas.settings" value="define('FPFIS_LDAP_SERVER_NAME', ${ldap.servername});
+define('FPFIS_LDAP_SERVER_PORT', ${ldap.port});
+define('FPFIS_LDAP_USER_DN', ${ldap.login});
+define('FPFIS_LDAP_PASSWORD', ${ldap.password});
+define('FPFIS_ECAS_URI', ${ecas.uri});
+define('FPFIS_ECAS_PORT', ${ecas.port});
+define('FPFIS_ECAS_URL', ${ecas.url});" />
+
+    <chmod file="${project.drupal.dir}/sites/default/settings.php" mode="0644" />
+    <append destFile="${project.drupal.dir}/sites/default/settings.php" text="${ecas.settings}" />
+    <chmod file="${project.drupal.dir}/sites/default/settings.php" mode="0444" />
+
+  </target>
+
+  <!-- ============================================  -->
+  <!-- Target: ActiveMQ (E+Link)                     -->
+  <!-- ============================================  -->
+
+  <target name="activemq" depends="init, setup-phing-drush">
+
+    <drush command="vset" assume="yes">
+      <param>eyp_vp_organisation_activemq_uri</param>
+      <param>${activemq.uri}</param>
+    </drush>
+
+    <drush command="vset" assume="yes">
+      <param>eyp_vp_organisation_activemq_queue</param>
+      <param>${activemq.queue}</param>
+    </drush>
+
+    <drush command="vset" assume="yes">
+      <param>eyp_vp_organisation_activemq_username</param>
+      <param>${activemq.username}</param>
+    </drush>
+
+    <drush command="vset" assume="yes">
+      <param>eyp_vp_organisation_activemq_password</param>
+      <param>${activemq.password}</param>
+    </drush>
+
+    <drush command="vset" assume="yes">
+      <param>eyp_vp_organisation_activemq_java</param>
+      <param>${activemq.java}</param>
+    </drush>
+
+  </target>
+
+  <!-- ============================================  -->
+  <!-- Target: Sybase (YoutLink)                     -->
+  <!-- ============================================  -->
+
+  <target name="sybase" depends="init, setup-phing-drush">
+
+    <drush command="vset" assume="yes">
+      <param>eyp_sybase_servername</param>
+      <param>${sybase.servername}</param>
+    </drush>
+
+    <drush command="vset" assume="yes">
+      <param>eyp_sybase_username</param>
+      <param>${sybase.username}</param>
+    </drush>
+
+    <drush command="vset" assume="yes">
+      <param>eyp_sybase_password</param>
+      <param>${sybase.password}</param>
+    </drush>
+
+  </target>
+
+</project>

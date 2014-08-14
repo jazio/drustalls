@@ -1,0 +1,142 @@
+Inject Data (populate) into your Drupal (nodes, taxonomy, images, CSV) using
+for testing purposes.
+
+- JSON ? structure
+- or PHP
+
+see dummy_content
+
+
+1. Are you running a reverse proxy server?
+NO: Go to question #2
+YES:
+2. Is the request being served by the proxy or web server?
+Is the returned content served from the cache? (Note: use Firebug, curl, whatever to look at request/response headers)
+Did you clear the proxy cache?
+Is the content being served cached content?
+NO: Go to question #3
+YES:
+Is it coming from a file cache? (e.g. Boost module)
+Is it coming from a memory cache (e.g. memcached)
+Did you clear any memory or file cache?
+3. Is the error coming from the web server?
+Have you checked the server logs?
+Does the folder or content have the right permissions?
+4. Is Drupal generating the error?
+Did you clear the cache?
+What module is rendering the content?
+Does it have a permissions setting?
+Is an input filter removing the content?
+Did you check the watchdog report?
+
+
+includes/bootstrap.inc:2236 — _drupal_error_handler() — For tracking down PHP errors, warnings, notices, etc.
+modules/dblog/dblog.module:141 — dblog_watchdog() — For tracking down errors in the database log.
+includes/form.inc:1442 — form_execute_handlers() — For tracking down issues with the Form API.
+
+
+
+A bookmarklet to expand an entire krumo debug (devel) tree
+javascript:jQuery('.krumo-expand:not(.krumo-opened)').click();
+
+Debug a query
+
+  $query = db_select('node', 'n');
+  $query
+      ->fields('n', array('nid', 'title'))
+      ->condition('n.type', 'article', '=');
+  $result = $query->execute();
+
+
+  dpq($query); # using devel
+  print_r($query->__toString());
+
+
+  <?php
+
+How to debug an entity query using addTag and a hook_query_alter
+
+$query->entityCondition('entity_type', 'node')
+->entityCondition('bundle', 'article')
+->propertyCondition('status', 1)
+->addTag('debug');
+
+// Add this function to the module
+function mymodule_query_alter($query) {
+  if ($query->hasTag('debug')) {
+    dpq($query);
+  }
+}
+
+
+Debugging querys with devel PUBLIC
+Rating:
++12
+up
+Clone this drupal snippet
+Submitted by StoraH on Tue, 11/05/2013 - 10:20
+Show the complete database querys using devel dpq
+
+</> Copy
+Get raw version
+php
+function hook_views_pre_execute(&$view) {
+  dpq($view->build_info['query']);
+}
+For a specific view
+
+</> Copy
+Get raw version
+php
+function hook_views_pre_execute(&$view) {
+  if ($view->name === 'name_of_your_view') {
+    dpq($view->build_info['query']);
+  }
+}
+
+
+Debugging emails PUBLIC
+Rating:
++7
+up
+Clone this drupal snippet
+Submitted by timonweb on Mon, 07/01/2013 - 16:06
+First approach is by using devel.module. Just add these lines to your settings.php. All emails will be logged in to your tmp directory.
+
+</> Copy
+Get raw version
+php
+$conf['mail_system'] = array(
+  'default-system' => 'DevelMailLog',
+);
+Second approach is to put this snippet into your custom module. You'll get a whole message object printed out on your screen.
+
+</> Copy
+Get raw version
+php
+/**
+ * Implements hook_mail_alter().
+ */
+function module_name_mail_alter(&$message) {
+  dpm($message);
+  // Uncomment the next line to prevent Drupal from sending out messages.
+  // $message['to'] = '';
+}
+
+Drupal debug script PUBLIC
+Rating:
++3
+up
+Clone this drupal snippet
+Submitted by oniksfly on Wed, 04/24/2013 - 15:09
+Debug script from project root folder, more http://oniksfly.blogspot.ru/2013/04/drupal-debug-script.html
+
+</> Copy
+Get raw version
+php
+<?php
+define('DRUPAL_ROOT', getcwd());
+require_once DRUPAL_ROOT . '/includes/bootstrap.inc'; drupal_bootstrap(DRUPAL_BOOTSTRAP_FULL);
+
+// Usefull code
+phpinfo();

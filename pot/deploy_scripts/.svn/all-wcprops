@@ -1,0 +1,41 @@
+K 25
+svn:wc:ra_dav:version-url
+V 56
+/CITnet/svn/MULTISITE/!svn/ver/1283/trunk/deploy_scripts
+END
+generate_delivery_reporting.sh
+K 25
+svn:wc:ra_dav:version-url
+V 87
+/CITnet/svn/MULTISITE/!svn/ver/1278/trunk/deploy_scripts/generate_delivery_reporting.sh
+END
+revert_all.sh
+K 25
+svn:wc:ra_dav:version-url
+V 70
+/CITnet/svn/MULTISITE/!svn/ver/1278/trunk/deploy_scripts/revert_all.sh
+END
+generate_reporting_on_subsites.sh
+K 25
+svn:wc:ra_dav:version-url
+V 90
+/CITnet/svn/MULTISITE/!svn/ver/1278/trunk/deploy_scripts/generate_reporting_on_subsites.sh
+END
+deploy_cancel_roles.php
+K 25
+svn:wc:ra_dav:version-url
+V 80
+/CITnet/svn/MULTISITE/!svn/ver/1267/trunk/deploy_scripts/deploy_cancel_roles.php
+END
+generate_reporting.sh
+K 25
+svn:wc:ra_dav:version-url
+V 78
+/CITnet/svn/MULTISITE/!svn/ver/1278/trunk/deploy_scripts/generate_reporting.sh
+END
+deploy_change_roles.sh
+K 25
+svn:wc:ra_dav:version-url
+V 79
+/CITnet/svn/MULTISITE/!svn/ver/1283/trunk/deploy_scripts/deploy_change_roles.sh
+END

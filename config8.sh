@@ -12,9 +12,9 @@ docroot=''
 # Main destination
 drupal_dir='/var/www/html'
 # Specific destination. Leave blank if desired to install in root
-drupal_subdir='drupal_review'
+drupal_subdir='drupal8'
 
-site_name='Multisite-Review'
+site_name='Drupal 8'
 
 # Database
 db_user='root'
@@ -22,7 +22,7 @@ db_pass='dev'
 db_host='localhost'
 db_port='3306'
 
-db_name='drupal_review'
+db_name='drupal8'
 
 # Poweruser uid=1
 user_name='admin'
@@ -30,4 +30,4 @@ user_pass='pass'
 user_mail='admin@example.com'
 
 # Make file
-make_file='drupal-org.make'
+make_file='drupal-org8.make'

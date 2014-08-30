@@ -2,35 +2,25 @@
 
 # source command executes the file passed as argument in the current argument.
 # It has synonim in '.'
-source config.sh
+source config8.sh
 
-# Download Drupal 7
+# Download Drupal 8
 # ---------------------------------------------------------------------------
-drush dl -y --destination=$drupal_dir --drupal-project-rename=$drupal_subdir;
-cd $drupal_dir/$drupal_subdir;
 
+
+git clone --branch 8.1.x http://git.drupal.org/project/drupal.git $drupal_dir/$drupal_subdir;
+cd $drupal_dir/$drupal_subdir;
 # Install
 # profile = standard
 # @todo conditional in case credentials are wrong
-drush si -y standard --account-mail=$user_mail --account-name=$user_name --account-pass=$user_pass --site-name=$site_name --site-mail=$user_mail --locale="en-GB" --db-url=mysql://$db_user:$db_pass@$db_host/$db_name;
+drush si -y standard --account-mail=$user_mail --account-name=$user_name --account-pass=$user_pass --site-name=$site_name --site-mail=$user_mail --db-url=mysql://$db_user:$db_pass@$db_host/$db_name;
+
+sudo chmod -R 777 $drupal_dir/$drupal_subdir/sites/default/settings.php;
+sudo chmod 777 -R sites/default/files
 
 # Modules and themes
-drush make -v $make_file $drupal_subdir;
+drush make -v $make_file;
 
-# Enabled
-drush -y en \
-views \
-views_ui \
-token \
-admin_menu \
-jquery_update;
-
-# Disabled
-drush -y dis \
-color \
-toolbar \
-shortcut \
-search;
 
 # Settings
 #
@@ -41,10 +31,6 @@ search;
 # set site slogan
 #drush vset -y site_slogan $site_slogan;
 
-# Configure JQuery update
-#drush vset -y jquery_update_compression_type "min";
-#drush vset -y jquery_update_jquery_cdn "google";
-#drush -y eval "variable_set('jquery_update_jquery_version', strval(1.7));"
 
 echo -e "////////////////////////////////////////////////////"
 echo -e "// Install Completed"

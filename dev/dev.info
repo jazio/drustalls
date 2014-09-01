@@ -1,20 +1,18 @@
 name = Dev Tools
-description = Tool for Drupal Developers
+description = Developers Tool for Drupal Developers
 core = 7.x
-package = Dev Tools
+package = Tools
 php = 5.2.4
 version = 7.x-1.0
 project = dev
-dependencies[] = coder
-dependencies[] = coder_review
+
 dependencies[] = ctools
+dependencies[] = features
+dependencies[] = strongarm
 dependencies[] = devel
 dependencies[] = devel_generate
-dependencies[] = features
 dependencies[] = mail_logger
-dependencies[] = simpletest
 dependencies[] = coffee
-dependencies[] = strongarm
 dependencies[] = visualize_backtrace
 dependencies[] = forminspect
 dependencies[] = devel_themer
@@ -22,7 +20,6 @@ dependencies[] = drupalforfirebug
 dependencies[] = search_krumo
 dependencies[] = devel_debug_log
 dependencies[] = module_filter
-dependencies[] = realistic_dummy_content
 
 features[ctools][] = strongarm:strongarm:1
 features[features_api][] = api:1

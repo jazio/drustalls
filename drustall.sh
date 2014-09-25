@@ -46,6 +46,10 @@ search;
 #drush vset -y jquery_update_jquery_cdn "google";
 #drush -y eval "variable_set('jquery_update_jquery_version', strval(1.7));"
 
+# Flush cache and rebuild access
+drush cc all
+drush php-eval 'node_access_rebuild();'
+
 echo -e "////////////////////////////////////////////////////"
 echo -e "// Install Completed"
 echo -e "////////////////////////////////////////////////////"

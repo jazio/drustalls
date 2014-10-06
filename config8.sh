@@ -12,7 +12,7 @@ docroot=''
 # Main destination
 drupal_dir='/var/www/html'
 # Specific destination. Leave blank if desired to install in root
-drupal_subdir='drupal8'
+drupal_subdir='drupal8.drupalcon'
 
 site_name='Drupal 8'
 
@@ -22,7 +22,7 @@ db_pass='dev'
 db_host='localhost'
 db_port='3306'
 
-db_name='drupal8'
+db_name='drupal8.drupalcon'
 
 # Poweruser uid=1
 user_name='admin'

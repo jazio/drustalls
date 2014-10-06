@@ -8,7 +8,7 @@ source config8.sh
 # ---------------------------------------------------------------------------
 
 
-git clone --branch 8.1.x http://git.drupal.org/project/drupal.git $drupal_dir/$drupal_subdir;
+git clone --branch 8.0.x http://git.drupal.org/project/drupal.git $drupal_dir/$drupal_subdir;
 cd $drupal_dir/$drupal_subdir;
 # Install
 # profile = standard

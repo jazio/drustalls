@@ -14,3 +14,7 @@ chown username drustall.sh
 reinstall script
 dev make file
 dev feature
+
+lh
+Contains scripts to create a virtual host for your site.
+sudo ./newhost.sh

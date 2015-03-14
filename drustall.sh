@@ -99,8 +99,10 @@ if [ "$version" == "7" ]; then
   # Revoke group and other write permissions.
   chmod go-w sites/default/settings.php
   # Flush cache and rebuild access.
-  drush cc all
+  drush cc all -y
   drush php-eval 'node_access_rebuild();'
+  # Create an initial dump
+  drush sql-dump > $db_name
 fi
 
 # Write permissions after install.

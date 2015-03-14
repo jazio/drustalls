@@ -29,10 +29,10 @@ projects[drupal][version] = 7
   
 ; Modules
 ; --------
-projects[ctools][version] = 1.4
+projects[ctools][version] = 1.5
 projects[ctools][type] = "module"
 
-projects[context][version] = 3.2
+projects[context][version] = 3.3
 projects[context][type] = "module"
 
 projects[entity][version] = 1.5

@@ -18,13 +18,17 @@ function download_archive ()
       else
         # Fetch latest Drupal 8 version.
         wget http://ftp.drupal.org/files/projects/$file
+        prepare_archive
+      fi
+ }
+
+ function prepare_archive () {
         # Unpack.
         tar xzf $file
         # Rename folder.
         mv $drupal_package $drupal_subdir
         # Move it out of script folder.
         mv -f $drupal_subdir $webroot/
-      fi
  }
 
 echo -n "$CYAN Drupal version: "
@@ -48,6 +52,7 @@ elif [ "$version" == "8" ]; then
                       then
                         echo "$CYAN Archive $file exists and will use it."
                         archive=1
+                        prepare_archive
                       else
                         echo "$CYAN Archive $file does not exist and will download it."
                         archive=0

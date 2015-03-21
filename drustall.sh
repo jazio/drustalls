@@ -1,16 +1,32 @@
 #!/usr/bin/env bash
-
+# Output executed commands. Useful for debug.
+# set -x
+# Fail one command all fail.
+# set -e
 # Load variables.
 source config.sh
 
-if [ -d "$webroot/$drupal_subdir" ]; then
-    echo "$RED Folder $drupal_subdir already exists. Please choose another one."
-    exit 1
-fi
+function delete_drupal ()
+{
+  if [ -d "$webroot/$drupal_subdir" ]; then
+    echo "${RED} Folder $drupal_subdir already exists. Delete it? (y/n): ${NO_COLOR}"
+    read answer
+    if [ "$answer" == "y" ]; then
+      cd $webroot/$drupal_subdir
+      drush sql-drop
+      cd ..
+      chmod 777 -R $drupal_subdir
+      rm -rf $drupal_subdir
+    else
+      exit 1
+    fi
+  fi
+}
+
 
 function download_archive ()
 {
-  echo -n "$CYAN Drupal 8 -dev version? y/n: "
+  echo -n "${CYAN}Drupal 8 -dev version? y/n: ${NO_COLOR}"
   read dev
       if [ "$dev" == "y" ]; then
         # Clone the latest git repository = Drupal 8 dev version.
@@ -31,7 +47,8 @@ function download_archive ()
         mv -f $drupal_subdir $webroot/
  }
 
-echo -n "$CYAN Drupal version: "
+delete_drupal
+echo -n "${CYAN}Drupal version: ${NO_COLOR}"
 read version
 
 # Prerequisites.
@@ -39,8 +56,10 @@ if [ "$version" == "7" ]; then
      
      drush dl -y --destination=$webroot --drupal-project-rename=$drupal_subdir;
      
-     cd $webroot/$drupal_subdir;
+     
      make_file='drupal-org7.make'
+     cp $make_file $webroot/$drupal_subdir;
+     cd $webroot/$drupal_subdir;
      sudo chmod a+w sites/default
      cp sites/default/default.settings.php sites/default/settings.php
      chmod a+w sites/default/settings.php
@@ -50,11 +69,11 @@ elif [ "$version" == "8" ]; then
         # Don't fetch archive if was already downloaded. Use the local archive.
          if [ -f $file ];
                       then
-                        echo "$CYAN Archive $file exists and will use it."
+                        echo "${CYAN} Archive $file exists and will use it. ${NO_COLOR}"
                         archive=1
                         prepare_archive
                       else
-                        echo "$CYAN Archive $file does not exist and will download it."
+                        echo "${CYAN} Archive $file does not exist and will download it. ${NO_COLOR}"
                         archive=0
                         download_archive
          fi
@@ -76,7 +95,7 @@ elif [ "$version" == "8" ]; then
                     sudo chmod a+w sites/default/services.yml
 
 else
-    echo "$CYAN Enter either version 7 or 8: "
+    echo "${CYAN} Enter either version 7 or 8: "
     exit 1
 fi
 
@@ -85,7 +104,7 @@ drush si -y standard --account-mail=$user_mail --account-name=$user_name --accou
 
 # Modules and themes.
 if [ "$version" == "7" ]; then
-  drush make -v --no-core $make_file;
+  drush make -v --no-core $make_file $webroot/$drupal_subdir;
   #todo study --no-core
   #drush make -v $make_file $drupal_subdir;
   drush -y en \
@@ -118,6 +137,8 @@ if [ "$version" == "8" ]; then
 else
         chmod 775 -R sies/all/default
 fi
-echo -e "$GREEN ////////////////////////////////////////////////////"
-echo -e "$GREEN // Install Completed"
-echo -e "$GREEN ////////////////////////////////////////////////////"
+echo -e "${GREEN} ////////////////////////////////////////////////////"
+echo -e "${GREEN} // Install Completed"
+echo -e "${GREEN} // Your installation folder is $webroot/$drupal_subdir"
+echo -e "${GREEN} // Your credentials are: user: $user_name / pass: $user_pass"
+echo -e "${GREEN} ////////////////////////////////////////////////////"

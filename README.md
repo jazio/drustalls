@@ -1,7 +1,7 @@
 
 Drupal Bash Scripts
 
-###./drustall.sh: Install a Drupal [7 or 8] instance
+### Install a Drupal [7 or 8] instance
 ===============================
 ####Make your script your own:
 ```
@@ -17,3 +17,6 @@ Contains scripts to create a virtual host for your site.
 ```
 $ sudo ./newhost.sh
 ```
+
+Known bugs
+When installation folder exits but database was deleted script is interupted.

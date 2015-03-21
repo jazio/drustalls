@@ -9,7 +9,7 @@ source config.sh
 function delete_drupal ()
 {
   if [ -d "$webroot/$drupal_subdir" ]; then
-    echo "${RED} Folder $drupal_subdir already exists. Delete it? (y/n): ${NO_COLOR}"
+    echo -n "${RED} Folder $drupal_subdir already exists. Delete it? (y/n): ${NO_COLOR}"
     read answer
     if [ "$answer" == "y" ]; then
       cd $webroot/$drupal_subdir

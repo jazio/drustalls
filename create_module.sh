@@ -8,58 +8,90 @@ source config.sh
 
 echo -e "${GREEN} ////////////////////////////////////////////////////"
 echo -e "${GREEN} // This script will create a scaffold Drupal 7 module"
-echo -e "${GREEN} ////////////////////////////////////////////////////"
-
-# Copy custom drush command into devel module folder
-
-       if [ -d $webroot/$drupal_subdir ];
+echo -e "${GREEN} //////////////////////////////////////////////////// ${NO_COLOR}"
+      
+      #Check if desired site exists
+     if [ -d $webroot/$drupal_subdir ];
           then
           cd $webroot/$drupal_subdir/sites/all/modules
-       else
+     else
           echo -e '$drupal_subdir does not exists. Run .drustall.sh to create it.'
           exit 1
-       fi
+     fi
 
-echo 'Enter module name: '
+echo -n 'Enter module name: '
 read module
 
 mkdir ${module}
 cd ${module}
 
-
-write_to_file()
+# Write info file.
+function write_info
 {
+        echo "name = ${module}" > ${module}.info
+        
+        echo -n "description = "
+        read description
+        echo "description = ${description}" >> ${module}.info
+        
+        echo "core = 7.x" >> ${module}.info
 
-     # initialize a local var
-     local file="${module}.info"
+        echo -n "package = "
+        read package
+        echo "package = ${package}" >> ${module}.info
 
-     # check if file exists. this is not required as echo >> would 
-     # would create it any way. but for this example I've added it for you
-     # -f checks if a file exists. The ! operator negates the result
-     if [ ! -f "$file" ] ; then
-         # if not create the file
-         touch "$file"
-     fi
 
-     # "open the file to edit" ... not required. echo will do
+        echo "configure = admin/config/content/${module}" >> ${module}.info
 
-     # go in a while loop
-     while true ; do
-        # ask input from user. read will store the 
-        # line buffered user input in the var $user_input
-        # line buffered means that read returns if the user
-        # presses return
-        echo 'Start writing. Press :q when ready.'
-        read user_input
-
-        # until user types  ":q" ... using the == operator
-        if [ "$user_input" == ":q" ] ; then
-            return # return from function
-        fi
-
-        # write to the end of the file. if the file 
-        # not already exists it will be created
-        echo "$user_input" >> "$file"
-     done
  }
 
+ function write_module
+ {
+  echo "<?php" >> ${module}.module
+ }
+
+ function write_inc
+ {
+  echo "<?php" >> ${module}.inc
+ }
+
+
+
+function write_to_file
+{
+    # Read function parameters. 
+    echo $1
+
+     if [ ! -f "${module}.$1" ] ; then
+         # if file does not exists create the file
+         touch "${module}.$1"
+     else
+      echo "File ${module}.$1 exists and skipped."
+     fi
+     write_$1
+     echo "File ${module}.$1 was written."
+}
+
+
+# Call function with parameter.
+write_to_file info
+write_to_file module
+write_to_file inc
+
+
+        # echo -e "dependencies = "
+        # while true ; do
+        # cat << DEPENDENCIES >> ${module}.info
+             
+        # mozilla
+        # links
+        # lynx
+        # konqueror
+        # opera
+        # netscape
+        # DEPENDENCIES
+
+        #  if [ "$user_input" == ":q" ] ; then
+        #      return # return from function
+        #  fi
+        #  done

@@ -12,8 +12,8 @@ $ chown {username} drustall.sh
 $ ./drustall.sh
 ```
 
-### ./newhost.sh Install a new Apache host
-Contains scripts to create a virtual host for your site.
+### Install a new Apache host
+server  folder scripts to create a virtual host for your site.
 ```
 $ sudo ./newhost.sh
 ```

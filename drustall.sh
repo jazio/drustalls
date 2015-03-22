@@ -60,7 +60,7 @@ if [ "$version" == "7" ]; then
      make_file='drupal-org7.make'
      cp $make_file $webroot/$drupal_subdir;
      cd $webroot/$drupal_subdir;
-     sudo chmod a+w sites/default
+     sudo chmod a+w -R sites/default
      cp sites/default/default.settings.php sites/default/settings.php
      chmod a+w sites/default/settings.php
      mkdir sites/default/files
@@ -133,9 +133,10 @@ fi
 if [ "$version" == "8" ]; then
         chmod go-w sites/default/settings.php
         chmod go-w sites/default/services.yml
-        chmod go-w sites/default
+        chmod go-w sites/default/
 else
-        chmod 775 -R sies/all/default
+        chmod 775 -R sites/all/default/
+        chmod 664 sites/default/settings.php
 fi
 echo -e "${GREEN} ////////////////////////////////////////////////////"
 echo -e "${GREEN} // Install Completed"

@@ -12,18 +12,17 @@ echo -e "${GREEN} ////////////////////////////////////////////////////"
 
 # Copy custom drush command into devel module folder
 drush_command=publish.drush.inc
-drush cache-clear drush
 
 if [ -f $drush_command ];
     then
-       echo "${CYAN} $drush_command will be copied in $webroot/.drush folder. ${NO_COLOR}"
+       echo "${CYAN} $drush_command will be copied in ~/.drush folder. ${NO_COLOR}"
        #cp -vf $drush_command $webroot/$drupal_subdir/sites/all/modules/devel
-       if ! [ -d $webroot/.drush ];
+       if ! [ -d ~/.drush ];
           then
-          mkdir $webroot/.drush
+          mkdir ~/.drush
        fi
-       cp -vf $drush_command $webroot/.drush
-
+       cp -vf $drush_command ~/.drush
+       drush cache-clear drush
     else
        echo "${CYAN} $drush_command does not exist. ${NO_COLOR}"
 fi

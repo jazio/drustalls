@@ -1,0 +1,3 @@
+#!/bin/bash
+# fpfis_custom_ruleset just includes the coder Drupal sniffs --standard="~/.composer/vendor/drupal/coder/coder_sniffer/Drupal".
+~/.composer/vendor/bin/phpcs --standard="~/fpfis_custom_ruleset.xml" --extensions="php,info,module,inc,install,test,txt,profile,theme,js,css" "$@"

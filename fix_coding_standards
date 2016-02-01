@@ -1,0 +1,3 @@
+#!/bin/bash
+# -s contain display each sniff that perform action
+~/.composer/vendor/bin/phpcbf --standard="~/.composer/vendor/drupal/coder/coder_sniffer/Drupal" -s  "$@" 

@@ -1,10 +1,10 @@
-#!/bin/bash
+#!/usr/bin/env bash
 echo -n "Type the project machine-name: "
 read project
 echo -n "Type JIRA ticket no. MULTISITE-: "
-read jira
+read jirano
 
-jira="MULTISITE-"$jira
+jira="MULTISITE-"$jirano
 username="farcaov"
 
 echo "Initiating preparing $project under $jira ticket. "
@@ -12,10 +12,9 @@ echo "https://webgate.ec.europa.eu/CITnet/jira/browse/$jira"
 
 
 # Configure working directories
-# todo check if folder exists or else create them.
-stash_directory=~/www/stash
-svn_directory=~/www/svn
-temp_directory=~/www/tmp
+stash=~/www/stash
+svn=~/www/svn
+tmp=~/www/tmp
 
 # Colors. 0 = Normal; 1 = Bold.
 RED=$'\e[1;31m'
@@ -26,22 +25,30 @@ MAGENTA=$'\e[0;35m'
 CYAN=$'\e[0;36m'
 NO_COLOR=$'\e[0m'
 
+
 # Check there is a temp folder or create it.
-   if [ ! -d "$temp_directory" ]; then
-       mkdir -p $temp_directory
-   elif [ ! -d "$svn_directory" ]; then
-       mkdir -p $svn_directory
-   elif [ ! -d "$stash_directory" ]; then
-       mkdir -p $stash_directory
+function create_directories ()
+{
+   if [ ! -d "$tmp" ]; then
+       mkdir $tmp
+       chmod -R u+rwx $tmp
+       cd $tmp
+       mkdir $project
+   elif [ ! -d "$svn" ]; then
+       mkdir $svn
+       chmod -R u+rwx $svn
+   elif [ ! -d "$stash" ]; then
+       mkdir $stash
+       chmod -R u+rwx $stash
    else
        echo "All required folders are created."
    fi
-
+}
 
 
 function command_exists ()
 {
-  type "$1" &> /dev/null ;
+  type "$1" &> /dev/null
 }
 
 function check_input () {
@@ -59,8 +66,8 @@ function check_input () {
 
 function fetch_stash_repository ()
 {
-  cd $stash_directory
-  if [ -d "$stash_directory/${project}-reference" ]; then
+  cd $stash
+  if [ -d "$stash/${project}-reference" ]; then
     cd ${project}-reference
     git checkout master
     git reset --hard
@@ -70,10 +77,8 @@ function fetch_stash_repository ()
   else
     git clone https://${username}@webgate.ec.europa.eu/CITnet/stash/scm/multisite/${project}-reference.git
     cd ${project}-reference
-    echo "${YELLOW}Reference repository cloned to $stash_directory ${NO_COLOR}"
+    echo "${YELLOW}Reference repository cloned to $stash/${project}-reference ${NO_COLOR}"
   fi
-
-
 
   # Delay 2 seconds
   sleep 2
@@ -85,30 +90,55 @@ function fetch_stash_repository ()
 function prepare_what_to_deploy () 
 {
  # delete first the existing folders
- rm -rf $temp_directory/$project
- cp -R themes/ $temp_directory/$project/themes
- cp -R modules/ $temp_directory/$project/modules
- cp -R libraries/ $temp_directory/$project/libraries
- ls $temp_directory
- sleep 5
- #todo run make file
+  rm -rfv $tmp/$project
+  mkdir $tmp/$project
+  cd $stash/${project}-reference
+
+  if [ -d "$stash/${project}-reference/themes" ]; then
+    mkdir $tmp/$project/themes
+    cp -R themes/ $tmp/$project/
+  elif [ -d "$stash/${project}-reference/modules" ]; then
+    mkdir $tmp/$project/modules
+    cp -R modules/ $tmp/$project/
+  elif [ -d "$stash/${project}-reference/libraries" ]; then
+    mkdir $tmp/$project/libraries
+    cp -R libraries/ $tmp/$project/
+  fi
+  echo "These are the files to deploy:"
+  ls -lah $tmp
+  sleep 6
+  #todo run make file and fetch its content.
 }
 
 function prepare_svn ()
 {
-    cd svn_directory
+    cd $svn
     if [ -d "$project" ]; then
+      cd $svn/$project
       svn up
     else
       mkdir -p $project
       svn co https://webgate.ec.europa.eu/CITnet/svn/MULTISITE/trunk/custom_subsites/$project
+      cd $svn/$project
     fi
     
-    cp -R temp_directory/$project  svn_directory/$project
+    cp -fR $tmp/$project  $svn/$project
     svn status
-    #todo confirm commitment.
-    #svn add * --force
-    #svn commit -m "$jira" 
+    sleep 10
+}
+
+function commit_svn ()
+{
+    # todo commit only after checking if the folder not empty.
+    echo -n "${RED} Commit folder svn $svn to server ? (y/n): ${NO_COLOR}"
+    read answer
+    if [ "$answer" == "y" ]; then
+      #todo remove all files and commit.
+      svn add * --force
+      svn commit -m "$jira"
+    else
+      exit 1
+    fi
 }
  
 
@@ -116,6 +146,8 @@ function prepare_svn ()
 check_input "$project"
 check_input "$jira"
 command_exists "git"
+create_directories
 fetch_stash_repository
 prepare_what_to_deploy
-#prepare_svn
+prepare_svn
+commit_svn

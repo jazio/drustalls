@@ -5,6 +5,8 @@ echo -n "Type JIRA ticket no. MULTISITE-: "
 read jira
 
 jira="MULTISITE-"$jira
+username="farcaov"
+
 echo "Initiating preparing $project under $jira ticket. "
 echo "https://webgate.ec.europa.eu/CITnet/jira/browse/$jira"
 
@@ -25,9 +27,15 @@ CYAN=$'\e[0;36m'
 NO_COLOR=$'\e[0m'
 
 # Check there is a temp folder or create it.
- if [ ! -d "$temp_directory" ]; then
-    mkdir -p $temp_directory
- fi
+   if [ ! -d "$temp_directory" ]; then
+       mkdir -p $temp_directory
+   elif [ ! -d "$svn_directory" ]; then
+       mkdir -p $svn_directory
+   elif [ ! -d "$stash_directory" ]; then
+       mkdir -p $stash_directory
+   else
+       echo "All required folders are created."
+   fi
 
 
 
@@ -39,7 +47,8 @@ function command_exists ()
 function check_input () {
  # Parameter #1 is zero length.
  args=("$@")
-  if [ -z "$1" ]; then 
+  if [ -z "$1" ]
+    then 
     echo "Parameter empty."
     exit 
   else
@@ -59,7 +68,7 @@ function fetch_stash_repository ()
     git pull
     echo "${YELLOW}Updated repository. ${NO_COLOR}"
   else
-    git clone https://farcaov@webgate.ec.europa.eu/CITnet/stash/scm/multisite/${project}-reference.git
+    git clone https://${username}@webgate.ec.europa.eu/CITnet/stash/scm/multisite/${project}-reference.git
     cd ${project}-reference
     echo "${YELLOW}Reference repository cloned to $stash_directory ${NO_COLOR}"
   fi
@@ -106,5 +115,5 @@ check_input "$project"
 check_input "$jira"
 command_exists "git"
 fetch_stash_repository
-#prepare_what_to_deploy
+prepare_what_to_deploy
 #prepare_svn

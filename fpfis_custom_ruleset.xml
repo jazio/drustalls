@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<ruleset name="FPFIS Custom Standard">
+
+ <!--
+    Include everything in another ruleset.xml file. This is
+    really handy if you want to customise another developer's
+    custom standard. They just need to distribute their single
+    ruleset file to allow this.
+ -->
+ <rule ref="~/.composer/vendor/drupal/coder/coder_sniffer/Drupal/ruleset.xml"/>
+ <!--<rule ref="~/.composer/vendor/drupal/coder/coder_sniffer/Drupal"/>-->
+ <!--
+    The name attribute of the ruleset tag is displayed
+    when running PHP_CodeSniffer with the -v command line
+    argument. The description tag below is not displayed anywhere
+    except in this file, so it can contain information for
+    developers who may change this file in the future.
+ -->
+ <description>A custom fpfis coding standard</description>
+ <exclude-pattern>*/data/*</exclude-pattern>
+ <exclude-pattern>*/vendor/*</exclude-pattern>
+ <exclude-pattern>*.strongarm.inc</exclude-pattern>
+ <exclude-pattern>*.context.inc</exclude-pattern>
+ <exclude-pattern>*.min.js</exclude-pattern>
+ <exclude-pattern>*.features.*.inc</exclude-pattern>
+
+</ruleset>

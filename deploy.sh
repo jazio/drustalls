@@ -84,9 +84,11 @@ function fetch_stash_repository ()
 
 function prepare_what_to_deploy () 
 {
- cp -R themes/ $temp_directory/$project
- cp -R modules/ $temp_directory/$project
- cp -R libraries/ $temp_directory/$project
+ # delete first the existing folders
+ rm -rf $temp_directory/$project
+ cp -R themes/ $temp_directory/$project/themes
+ cp -R modules/ $temp_directory/$project/modules
+ cp -R libraries/ $temp_directory/$project/libraries
  ls $temp_directory
  sleep 5
  #todo run make file
@@ -104,7 +106,7 @@ function prepare_svn ()
     
     cp -R temp_directory/$project  svn_directory/$project
     svn status
-
+    #todo confirm commitment.
     #svn add * --force
     #svn commit -m "$jira" 
 }

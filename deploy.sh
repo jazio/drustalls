@@ -84,6 +84,7 @@ function fetch_stash_repository ()
   sleep 2
   git status
   sleep 5
+  git log -3 --oneline --decorate --graph
   #todo check coding standards
 }
 
@@ -130,7 +131,8 @@ function prepare_svn ()
 function commit_svn ()
 {
     # todo commit only after checking if the folder not empty.
-    echo -n "${RED} Commit folder svn $svn to server ? (y/n): ${NO_COLOR}"
+    cd $svn/$project
+    echo -n "${RED} Commit folder svn $svn/$project to server ? (y/n): ${NO_COLOR}"
     read answer
     if [ "$answer" == "y" ]; then
       #todo remove all files and commit.
@@ -145,7 +147,7 @@ function commit_svn ()
 
 check_input "$project"
 check_input "$jira"
-command_exists "git"
+git --version
 create_directories
 fetch_stash_repository
 prepare_what_to_deploy

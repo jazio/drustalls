@@ -140,6 +140,8 @@ function commit_svn ()
     read answer
     if [ "$answer" == "y" ]; then
       #todo remove all files and commit.
+
+
       svn add * --force
       svn commit -m "$jira"
     else

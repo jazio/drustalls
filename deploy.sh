@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# author: Ovi Farcas.
 echo -n "Type the project machine-name: "
 read project
 echo -n "Type JIRA ticket e.g. MULTISITE-1234: "

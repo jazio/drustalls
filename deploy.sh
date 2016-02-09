@@ -1,10 +1,9 @@
 #!/usr/bin/env bash
 echo -n "Type the project machine-name: "
 read project
-echo -n "Type JIRA ticket no. MULTISITE-: "
-read jirano
+echo -n "Type JIRA ticket e.g. MULTISITE-1234: "
+read jira
 
-jira="MULTISITE-"$jirano
 username="farcaov"
 
 echo "Initiating preparing $project under $jira ticket. "
@@ -59,7 +58,7 @@ function check_input () {
     echo "Parameter empty."
     exit 
   else
-   echo "${CYAN} ${args[0]} OK. ${NO_COLOR}"
+   echo "${CYAN} ${args[0]}. ${NO_COLOR}"
   fi
 }
 
@@ -111,19 +110,24 @@ function prepare_what_to_deploy ()
   #todo run make file and fetch its content.
 }
 
+
 function prepare_svn ()
 {
     cd $svn
     if [ -d "$project" ]; then
       cd $svn/$project
-      svn up
     else
       mkdir -p $project
       svn co https://webgate.ec.europa.eu/CITnet/svn/MULTISITE/trunk/custom_subsites/$project
       cd $svn/$project
     fi
-    
-    cp -fR $tmp/$project  $svn/$project
+      # Cleanup of old junk.
+      rm -rfv ./*
+      #svn delete * --force
+      #svn commit -m "$jira Clean svn repository."
+    # IMPORTATNT Copy project to svn folder.
+    cp -fR $tmp/$project  $svn
+    echo "svn status:"
     svn status
     sleep 10
 }
@@ -153,3 +157,6 @@ fetch_stash_repository
 prepare_what_to_deploy
 prepare_svn
 commit_svn
+echo -e "${GREEN} ////////////////////////////////////////////////////////////////////////////////////////////////////////////////"
+echo -e "${GREEN} // Check your svn here: https://webgate.ec.europa.eu/CITnet/svn/MULTISITE/trunk/custom_subsites/$project"
+echo -e "${GREEN} ////////////////////////////////////////////////////////////////////////////////////////////////////////////////"

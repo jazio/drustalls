@@ -98,10 +98,12 @@ function prepare_what_to_deploy ()
   if [ -d "$stash/${project}-reference/themes" ]; then
     mkdir $tmp/$project/themes
     cp -R themes/ $tmp/$project/
-  elif [ -d "$stash/${project}-reference/modules" ]; then
+  fi
+  if [ -d "$stash/${project}-reference/modules" ]; then
     mkdir $tmp/$project/modules
     cp -R modules/ $tmp/$project/
-  elif [ -d "$stash/${project}-reference/libraries" ]; then
+  fi
+  if [ -d "$stash/${project}-reference/libraries" ]; then
     mkdir $tmp/$project/libraries
     cp -R libraries/ $tmp/$project/
   fi
@@ -114,20 +116,19 @@ function prepare_what_to_deploy ()
 
 function prepare_svn ()
 {
-    cd $svn
-    if [ -d "$project" ]; then
-      cd $svn/$project
-    else
-      mkdir -p $project
+    if [ -d "$stash/${project}" ]; then
+       rm $stash/$project
+    fi
+      cd $svn
       svn co https://webgate.ec.europa.eu/CITnet/svn/MULTISITE/trunk/custom_subsites/$project
       cd $svn/$project
-    fi
       # Cleanup of old junk.
-      rm -rfv ./*
-      #svn delete * --force
+      #rm -rfv ./*
+      svn rm *
+      svn status | grep "^\!" | sed 's/^\! *//g' | xargs svn rm
       #svn commit -m "$jira Clean svn repository."
-    # IMPORTATNT Copy project to svn folder.
-    cp -fR $tmp/$project  $svn
+    # IMPORTANT Copy project to svn folder.
+    cp -fr $tmp/$project  $svn
     echo "svn status:"
     svn status
     sleep 10
@@ -137,19 +138,18 @@ function commit_svn ()
 {
     # todo commit only after checking if the folder not empty.
     cd $svn/$project
+    svn add * --force
+    echo "You are about to SVN commit:"
+    svn status
     echo -n "${RED} Commit folder svn $svn/$project to server ? (y/n): ${NO_COLOR}"
     read answer
     if [ "$answer" == "y" ]; then
-      #todo remove all files and commit.
-      svn add * --force
-      svn commit -m "$jira"
+       svn commit -m "$jira"
     else
       exit 1
     fi
 }
  
-
-
 check_input "$project"
 check_input "$jira"
 git --version

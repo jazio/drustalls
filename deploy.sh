@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # author: Ovi Farcas.
-echo -n "Type the project machine-name: "
+echo -n "Type the site machine-name: "
 read project
 echo -n "Type JIRA ticket e.g. MULTISITE-1234: "
 read jira
@@ -71,7 +71,8 @@ function fetch_stash_repository ()
     cd ${project}-reference
     git checkout master
     git reset --hard
-    git clean -f -d
+    git clean -fd -n
+    git clean -fd
     git pull
     echo "${YELLOW}Updated repository. ${NO_COLOR}"
   else
@@ -116,17 +117,20 @@ function prepare_what_to_deploy ()
 
 function prepare_svn ()
 {
-    if [ -d "$stash/${project}" ]; then
-       rm $stash/$project
+    if [ -d "$svn${project}" ]; then
+       rm $svn/$project
     fi
       cd $svn
       svn co https://webgate.ec.europa.eu/CITnet/svn/MULTISITE/trunk/custom_subsites/$project
       cd $svn/$project
       # Cleanup of old junk.
-      #rm -rfv ./*
-      svn rm *
-      svn status | grep "^\!" | sed 's/^\! *//g' | xargs svn rm
-      #svn commit -m "$jira Clean svn repository."
+      echo -n "${RED} Do you want to remove project from svn before committing? ${NO_COLOR} \n"
+      echo -n "Beware if there are modules to disable/uninstall you need to perform that first. Confirm svn remove y/n:"
+      read delete
+      if [ "$delete" == y ]; then
+        svn rm *
+        svn status | grep "^\!" | sed 's/^\! *//g' | xargs svn rm
+      fi
     # IMPORTANT Copy project to svn folder.
     cp -fr $tmp/$project  $svn
     echo "svn status:"

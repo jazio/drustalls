@@ -71,7 +71,7 @@ function fetch_stash_repository ()
     cd ${project}-reference
     git checkout master
     git reset --hard
-    git clean -fd -n
+    #git clean -fd -n
     git clean -fd
     git pull
     echo "${YELLOW}Updated repository. ${NO_COLOR}"
@@ -124,18 +124,19 @@ function prepare_svn ()
       svn co https://webgate.ec.europa.eu/CITnet/svn/MULTISITE/trunk/custom_subsites/$project
       cd $svn/$project
       # Cleanup of old junk.
-      echo -n "${RED} Do you want to remove project from svn before committing? ${NO_COLOR} \n"
+
+      echo -e "${RED} ////////////////////////////////////////////////////////////////////////////////////////////////////////////////"
+      echo -e "${RED} Do you want to remove project from svn before committing? "
+      echo -e "${RED} //////////////////////////////////////////////////////////////////////////////////////////////////////////////// ${NO_COLOR}"
       echo -n "Beware if there are modules to disable/uninstall you need to perform that first. Confirm svn remove y/n:"
       read delete
       if [ "$delete" == y ]; then
         svn rm *
+        # Tip to resolve ! prefixed file in the svn status report.
         svn status | grep "^\!" | sed 's/^\! *//g' | xargs svn rm
       fi
     # IMPORTANT Copy project to svn folder.
     cp -fr $tmp/$project  $svn
-    echo "svn status:"
-    svn status
-    sleep 10
 }
 
 function commit_svn ()
@@ -143,7 +144,7 @@ function commit_svn ()
     # todo commit only after checking if the folder not empty.
     cd $svn/$project
     svn add * --force
-    echo "You are about to SVN commit:"
+    echo "${RED}You are about to SVN commit:${NO_COLOR}"
     svn status
     echo -n "${RED} Commit folder svn $svn/$project to server ? (y/n): ${NO_COLOR}"
     read answer

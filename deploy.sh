@@ -108,17 +108,14 @@ function prepare_what_to_deploy ()
     mkdir $tmp/$project/libraries
     cp -R libraries/ $tmp/$project/
   fi
-  echo "These are the files to deploy:"
-  ls -lah $tmp
-  sleep 6
   #todo run make file and fetch its content.
 }
 
 
 function prepare_svn ()
 {
-    if [ -d "$svn${project}" ]; then
-       rm $svn/$project
+    if [ -d "$svn/${project}" ]; then
+       rm -rf $svn/$project
     fi
       cd $svn
       svn co https://webgate.ec.europa.eu/CITnet/svn/MULTISITE/trunk/custom_subsites/$project

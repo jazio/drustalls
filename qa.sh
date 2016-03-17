@@ -77,12 +77,7 @@ function fetch_stash_repository ()
     echo "${YELLOW}Reference repository cloned to $stash/${project}-dev. We checkout the branch ${branch} ${NO_COLOR}"
  }
 
-function clean_repository () 
-{
- cd ${stash}/${project}-dev
- find . -name .svn -exec rm -rf {} \;
- echo "${GREEN}Cleaned repo of .svn folders${NO_COLOR}"
-}
+
 
 function checks ()
 {
@@ -90,10 +85,10 @@ echo -e "${MAGENTA} Spot debug functions.${NO_COLOR}"
 grep -nir 'debug(\|dpm(\|dsm(\|dpq(\|kpr(\|print_r(\|var_dump(\|dps(' .
 
 echo -e "${MAGENTA} Inspect function prefixes.${NO_COLOR}"
-grep -Irin 'function' .
+grep -Irin 'function' > ~/check.function.report
 
 echo -e "${MAGENTA} Spot if error messages region was hidden.${NO_COLOR}"
-grep -Irin '$message' .
+grep -Irin -A 5 -B 5 '$message' .
 echo -e "${MAGENTA} .${NO_COLOR}"
 }
 
@@ -102,7 +97,6 @@ check_input "${branch}"
 git --version
 create_directories
 fetch_stash_repository
-clean_repository
 checks
 echo -e "${GREEN} ////////////////////////////////////////////////////////////////////////////////////////////////////////////////"
 echo -e "${GREEN} // https://farcaov@webgate.ec.europa.eu/CITnet/stash/scm/multisite/${project}-dev.git"

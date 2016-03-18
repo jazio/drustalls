@@ -83,52 +83,62 @@ function fetch_stash_repository ()
 
 function checks ()
 {
-echo -e "${GREEN} ////////////////////////////////////////////////////////////////////////////////////////////////////////////////"
-echo -e "${MAGENTA} Spot debug functions.${NO_COLOR}"
-echo -e "${GREEN} ////////////////////////////////////////////////////////////////////////////////////////////////////////////////"
+echo -e "${CYAN}   Spot debug functions."
 grep -Irin 'debug(\|dpm(\|dsm(\|dpq(\|kpr(\|print_r(\|var_dump(\|dps(' .
 
-echo -e "${GREEN} ////////////////////////////////////////////////////////////////////////////////////////////////////////////////"
-echo -e "${MAGENTA} Inspect function prefixes.${NO_COLOR}"
-echo -e "${GREEN} ////////////////////////////////////////////////////////////////////////////////////////////////////////////////"
+echo -e "${CYAN}   Inspect function prefixes.${NO_COLOR}"
 grep -Irin 'function' > ~/check.function.report
 
-echo -e "${GREEN} ////////////////////////////////////////////////////////////////////////////////////////////////////////////////"
-echo -e "${MAGENTA} Spot if error messages region was hidden. 5 line context included.${NO_COLOR}"
-echo -e "${GREEN} ////////////////////////////////////////////////////////////////////////////////////////////////////////////////"
-grep -Irin -A 5 -B 5 '$message' .
+echo -e "${CYAN}   Spot if error messages region was hidden. 5 line context included.${NO_COLOR}"
+grep -Irin -A 2 -B 2 '$message' --include "*.tpl.php" .
+
+echo -e "${CYAN}   Scan base fields declared in the features files.${NO_COLOR}"
+
+declare -a arr=("$field_bases[" "locked" "datetime")
+
+## now loop through the above array
+for i in "${arr[@]}"
+do
+   # loop over code dangerous commands
+   find . | grep "field_base.inc$" | xargs grep -Irins "$i"
+done
+
+#grep -Irin '$field_bases[' --include *field_base.inc .
 
 echo -e "${GREEN} ////////////////////////////////////////////////////////////////////////////////////////////////////////////////"
-echo -e "${MAGENTA} Scan the settings file.${NO_COLOR}"
-echo -e "${GREEN} ////////////////////////////////////////////////////////////////////////////////////////////////////////////////"
-grep -Irin "$field_bases[" ./*field_base.inc
-grep -Irin "'locked'" ./*field_base.inc
-grep -Irin "datetime" ./*field_base.inc
+echo -e "${CYAN}   Security checks.${NO_COLOR}"
+echo -e "${GREEN} ////////////////////////////////////////////////////////////////////////////////////////////////////////////////${NO_COLOR}"
 
-echo -e "${GREEN} ////////////////////////////////////////////////////////////////////////////////////////////////////////////////"
-echo -e "${MAGENTA} Security checks.${NO_COLOR}"
-echo -e "${GREEN} ////////////////////////////////////////////////////////////////////////////////////////////////////////////////"
-
-echo -e "${MAGENTA} Cross site scripting XSS.${NO_COLOR}"
+echo -e "${CYAN} Cross site scripting XSS.${NO_COLOR}"
 grep -i -r "\$_GET" * | grep "echo"
 
-echo -e "${MAGENTA} Command injection..${NO_COLOR}"
-grep -ir "exec(" *
-grep -ir "eval(" *
+echo -e "${CYAN} Command injection.${NO_COLOR}"
+## declare an array variable
+declare -a arr=("eval(" "fopen(" "passthru(" "exec(" "proc_" "dl(" "require($" "require_once($" "include($" "include_once($" "include($" "query(")
 
-echo -e "${MAGENTA} Cross site scripting.${NO_COLOR}"
+## now loop through the above array
+for i in "${arr[@]}"
+do
+   # loop over code dangerous commands
+   find . | grep "php$" | xargs grep -s "$i"
+done
 
+# You can access them using echo "${arr[0]}", "${arr[1]}" also
 
-echo -e "${MAGENTA} .${NO_COLOR}"
+#grep -ir "exec\(" --exclude=*.min.js .
+#grep -ir "eval\(" --exclude=*.min.js .
+
 
 }
 
 check_input "${project}"
 check_input "${branch}"
 git --version
+grep -V
 create_directories
 fetch_stash_repository
 checks
 echo -e "${GREEN} ////////////////////////////////////////////////////////////////////////////////////////////////////////////////"
 echo -e "${GREEN} // https://farcaov@webgate.ec.europa.eu/CITnet/stash/scm/multisite/${project}-dev.git"
 echo -e "${GREEN} ////////////////////////////////////////////////////////////////////////////////////////////////////////////////"
+

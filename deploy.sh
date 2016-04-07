@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # author: Ovi Farcas.
-echo -n "Type the site machine-name: "
+echo -n "Type the stash repo machine-name: "
 read project
 echo -n "Type JIRA ticket e.g. MULTISITE-1234: "
 read jira
@@ -81,7 +81,7 @@ function fetch_stash_repository ()
     echo "${YELLOW}Reference repository cloned to $stash/${project}-reference ${NO_COLOR}"
   fi
 
-  # Delay 2 seconds
+  # Delay 2 seconds.
   sleep 2
   git status
   sleep 5
@@ -90,9 +90,14 @@ function fetch_stash_repository ()
 }
 
 function prepare_what_to_deploy () 
-{
- # delete first the existing folders
-  rm -rfv $tmp/$project
+{    
+
+  if [ -d "$svn/${project}" ]; then
+       rm -rf $svn/$project
+  fi
+ 
+  # Delete the tmp folder.
+  rm -rf $tmp/$project
   mkdir $tmp/$project
   cd $stash/${project}-reference
 
@@ -108,24 +113,38 @@ function prepare_what_to_deploy ()
     mkdir $tmp/$project/libraries
     cp -R libraries/ $tmp/$project/
   fi
-  #todo run make file and fetch its content.
+  # When starterkit is available.
+  if [ -d "$stash/${project}-reference/lib" ]; then
+    mtkdir $tmp/$project/themes/
+    cd $stash/${project}-reference/lib
+    cp -R themes/ $tmp/$project
+    mkdir $tmp/$project/modules
+    cp -R modules/ $tmp/$project
+    cp -R features $tmp/$project/modules
+  fi
+  # Run make file
+  if [ -d "$stash/${project}-reference/resources" ] && [ -a "$stash/${project}-reference/resources/site.make"]; then
+    cd $stash/${project}-reference/resources
+    drush make site.make --no-core
+    mv -R ./site/all/modules/contrib $tmp/project/modules
+  fi
+  
 }
 
 
 function prepare_svn ()
 {
-    if [ -d "$svn/${project}" ]; then
-       rm -rf $svn/$project
-    fi
-      cd $svn
-      svn co https://webgate.ec.europa.eu/CITnet/svn/MULTISITE/trunk/custom_subsites/$project
-      cd $svn/$project
-      # Cleanup of old junk.
+     cd $svn
+     echo -n "${GREEN} What is the svn repo name ? (y/n): ${NO_COLOR}"
+     read svn_repo
+      svn co https://webgate.ec.europa.eu/CITnet/svn/MULTISITE/trunk/custom_subsites/${svn_repo}
+      cd $svn/${svn_repo}
 
+      # Cleanup of old svn junk.
       echo -e "${RED} ////////////////////////////////////////////////////////////////////////////////////////////////////////////////"
-      echo -e "${RED} Do you want to remove project from svn before committing? "
+      echo -e "${RED} Do you want to remove project from svn before committing? Choose no if unsure."
       echo -e "${RED} //////////////////////////////////////////////////////////////////////////////////////////////////////////////// ${NO_COLOR}"
-      echo -n "Beware if there are modules to disable/uninstall you need to perform that first. Confirm svn remove y/n:"
+      echo -n "${RED} WARNING Confirm svn remove y/n:"
       read delete
       if [ "$delete" == y ]; then
         svn rm *
@@ -143,11 +162,13 @@ function commit_svn ()
     svn add * --force
     echo "${RED}You are about to SVN commit:${NO_COLOR}"
     svn status
-    echo -n "${RED} Commit folder svn $svn/$project to server ? (y/n): ${NO_COLOR}"
+    echo -n "${GREEN} Commit folder svn $svn/$project to server ? (y/n): ${NO_COLOR}"
     read answer
+
     if [ "$answer" == "y" ]; then
        svn commit -m "$jira"
     else
+      echo "Project not deployed. Check $svn/$project folder"
       exit 1
     fi
 }

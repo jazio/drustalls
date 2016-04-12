@@ -9,58 +9,9 @@ read repoplace
 echo -n "Type the complete branch name to perform qa on e.g feature/MULTISITE-1234, or develop: "
 read branch
 
-username="farcaov"
-
 echo "${CYAN}Initiating preparing $project for QA.${NO_COLOR}"
 
-# Configure working directories
-stash=~/www/stash
-svn=~/www/svn
-tmp=~/www/tmp
-
-# Colors. 0 = Normal; 1 = Bold.
-RED=$'\e[1;31m'
-GREEN=$'\e[0;32m'
-YELLOW=$'\e[0;33m'
-BLUE=$'\e[0;34m'
-MAGENTA=$'\e[0;35m'
-CYAN=$'\e[0;36m'
-NO_COLOR=$'\e[0m'
-
-
-# Check there is a temp folder or create it.
-function create_directories ()
-{
-   if [ ! -d "$tmp" ]; then
-       mkdir $tmp
-       chmod -R u+rwx $tmp
-       cd $tmp
-       mkdir $project
-   elif [ ! -d "$svn" ]; then
-       mkdir $svn
-       chmod -R u+rwx $svn
-   elif [ ! -d "$stash" ]; then
-       mkdir $stash
-       chmod -R u+rwx $stash
-   else
-       echo "All required local folders are created."
-       echo -e "${GREEN} //////////////////////////////////////////////////////////////////////////////////"
-   fi
-}
-
-
-function check_input () {
- # Parameter #1 is zero length.
- args=("$@")
-  if [ -z "$1" ]
-    then 
-    echo "Parameter empty."
-    exit 
-  else
-   echo "${CYAN} ${args[0]}. ${NO_COLOR}"
-  fi
-}
-
+source config.sh
 
 function fetch_stash_repository ()
 {
@@ -89,13 +40,13 @@ function fetch_stash_repository ()
 function checks ()
 {
 echo -e "${CYAN}   Spot debug functions."
-grep -Irin --exclude-dir="contrib" 'debug(\|dpm(\|dsm(\|dpq(\|kpr(\|print_r(\|var_dump(\|dps(' . 
+grep -Irin --color --exclude-dir="contrib" 'debug(\|dpm(\|dsm(\|dpq(\|kpr(\|print_r(\|var_dump(\|dps(' . 
 
 echo -e "${CYAN}   Inspect function prefixes.${NO_COLOR}"
-grep -Irin 'function' > ~/check.function.report
+grep -Irin --color 'function' > ~/check.function.report
 
 echo -e "${CYAN}   Spot if error messages region was hidden. 5 line context included.${NO_COLOR}"
-grep -Irin -A 1 -B 1 '$message' --include="*.tpl.php" .
+grep -Irin -A 1 -B 1 --color '$message' --include="*.tpl.php" .
 
 echo -e "${CYAN}   Scan base fields declared in the features files.${NO_COLOR}"
 
@@ -109,14 +60,14 @@ do
 done
 
 # Function prefixes
-grep -Irin '$field_bases[' --include *field_base.inc .
+grep -Irin '$field_bases[' --color --include *field_base.inc .
 
 echo -e "${GREEN} ////////////////////////////////////////////////////////////////////////////////////////////////////////////////"
 echo -e "${CYAN}   Security checks.${NO_COLOR}"
 echo -e "${GREEN} ////////////////////////////////////////////////////////////////////////////////////////////////////////////////${NO_COLOR}"
 
 echo -e "${CYAN} Cross site scripting XSS.${NO_COLOR}"
-grep -i -r "\$_GET" * | grep "echo"
+grep --color -i -r "\$_GET" * | grep "echo"
 
 echo -e "${CYAN} Command injection.${NO_COLOR}"
 ## declare an array variable

@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 # author: Ovi Farcas.
+
+source config.sh
+
 echo -n "Type the stash repo machine-name: "
 read project
 echo -n "Type JIRA ticket e.g. MULTISITE-1234: "
@@ -10,58 +13,6 @@ username="farcaov"
 echo "Initiating preparing $project under $jira ticket. "
 echo "https://webgate.ec.europa.eu/CITnet/jira/browse/$jira"
 
-
-# Configure working directories
-stash=~/www/stash
-svn=~/www/svn
-tmp=~/www/tmp
-
-# Colors. 0 = Normal; 1 = Bold.
-RED=$'\e[1;31m'
-GREEN=$'\e[0;32m'
-YELLOW=$'\e[0;33m'
-BLUE=$'\e[0;34m'
-MAGENTA=$'\e[0;35m'
-CYAN=$'\e[0;36m'
-NO_COLOR=$'\e[0m'
-
-
-# Check there is a temp folder or create it.
-function create_directories ()
-{
-   if [ ! -d "$tmp" ]; then
-       mkdir $tmp
-       chmod -R u+rwx $tmp
-       cd $tmp
-       mkdir $project
-   elif [ ! -d "$svn" ]; then
-       mkdir $svn
-       chmod -R u+rwx $svn
-   elif [ ! -d "$stash" ]; then
-       mkdir $stash
-       chmod -R u+rwx $stash
-   else
-       echo "All required folders are created."
-   fi
-}
-
-
-function command_exists ()
-{
-  type "$1" &> /dev/null
-}
-
-function check_input () {
- # Parameter #1 is zero length.
- args=("$@")
-  if [ -z "$1" ]
-    then 
-    echo "Parameter empty."
-    exit 
-  else
-   echo "${CYAN} ${args[0]}. ${NO_COLOR}"
-  fi
-}
 
 
 function fetch_stash_repository ()
@@ -135,14 +86,14 @@ function prepare_what_to_deploy ()
 function prepare_svn ()
 {
      cd $svn
-     echo -n "${GREEN} What is the svn repo name ? (y/n): ${NO_COLOR}"
+     echo -n "${GREEN} What is the svn repo machine-name ?: ${NO_COLOR}"
      read svn_repo
       svn co https://webgate.ec.europa.eu/CITnet/svn/MULTISITE/trunk/custom_subsites/${svn_repo}
       cd $svn/${svn_repo}
 
       # Cleanup of old svn junk.
       echo -e "${RED} ////////////////////////////////////////////////////////////////////////////////////////////////////////////////"
-      echo -e "${RED} Do you want to remove project from svn before committing? Choose no if unsure."
+      echo -e "${RED} Remove files from svn before committing? Choose NO if unsure."
       echo -e "${RED} //////////////////////////////////////////////////////////////////////////////////////////////////////////////// ${NO_COLOR}"
       echo -n "${RED} WARNING Confirm svn remove y/n:"
       read delete

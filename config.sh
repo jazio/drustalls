@@ -31,3 +31,41 @@ BLUE=$'\e[0;34m'
 MAGENTA=$'\e[0;35m'
 CYAN=$'\e[0;36m'
 NO_COLOR=$'\e[0m'
+
+# Check there is a temp folder or create it.
+function create_directories ()
+{
+   if [ ! -d "$tmp" ]; then
+       mkdir $tmp
+       chmod -R u+rwx $tmp
+       cd $tmp
+       mkdir $project
+   elif [ ! -d "$svn" ]; then
+       mkdir $svn
+       chmod -R u+rwx $svn
+   elif [ ! -d "$stash" ]; then
+       mkdir $stash
+       chmod -R u+rwx $stash
+   else
+       echo "All required folders are created."
+   fi
+}
+
+
+function command_exists ()
+{
+  type "$1" &> /dev/null
+}
+
+function check_input () {
+ # Parameter #1 is zero length.
+ args=("$@")
+  if [ -z "$1" ]
+    then
+    echo "Parameter empty."
+    exit
+  else
+   echo "${CYAN} ${args[0]}. ${NO_COLOR}"
+  fi
+}
+

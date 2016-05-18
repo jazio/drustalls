@@ -11,27 +11,67 @@ read branch
 
 echo "${CYAN}Initiating preparing $project for QA.${NO_COLOR}"
 
-source config.sh
+# Colors. 0 = Normal; 1 = Bold.
+RED=$'\e[1;31m'
+GREEN=$'\e[0;32m'
+YELLOW=$'\e[0;33m'
+BLUE=$'\e[0;34m'
+MAGENTA=$'\e[0;35m'
+CYAN=$'\e[0;36m'
+NO_COLOR=$'\e[0m'
+
+# Check there is a temp folder or create it.
+function create_directories ()
+{
+   cd $webroot
+   if [ ! -d "$tmp" ]; then
+       mkdir $tmp
+       chmod -R u+rwx $tmp
+       cd $tmp
+       mkdir $project
+   elif [ ! -d "$svn" ]; then
+       mkdir $svn
+       chmod -R u+rwx $svn
+   elif [ ! -d "$stash" ]; then
+       mkdir $stash
+       chmod -R u+rwx $stash
+   else
+       echo "All required folders are created."
+   fi
+}
+
+function check_input () {
+ # Parameter #1 is zero length.
+ args=("$@")
+  if [ -z "$1" ]
+    then
+    echo "Parameter empty."
+    exit
+  else
+   echo "${CYAN} ${args[0]}. ${NO_COLOR}"
+  fi
+}
 
 function fetch_stash_repository ()
 {
   cd $stash
+  
   if [ ! -d "$stash/${project}-dev" ]; then
     if [ $repoplace == *"github"* ]; then
-       git clone https://github.com/ec-europa/${project}-dev.git -v
+       git clone https://github.com/ec-europa/${project}-dev.git
     else
-       git clone https://${username}@webgate.ec.europa.eu/CITnet/stash/scm/multisite/${project}-dev.git -v
+       git clone https://${username}@webgate.ec.europa.eu/CITnet/stash/scm/multisite/${project}-dev.git
     fi
   fi
     cd ${project}-dev
     git pull
-    echo -e "${GREEN} /////////////////////////////////////////////////////////////${repoplace}////////////////////////////////////////////////////////////////////"
+    echo -e "${GREEN} /////////////////////////////////////////////${repoplace}//////////////////////////////////////////////////////"
     git clean -fd
     git branch -a | grep ${branch}
     git checkout -b ${branch}-local remotes/origin/${branch}
     git pull
     echo -e "${GREEN} ////////////////////////////////////////////////////////////////////////////////////////////////////////////////"
-    echo "${YELLOW}Reference repository cloned to $stash/${project}-dev. We checkout the branch ${branch} ${NO_COLOR}"
+    echo "${YELLOW}   Reference repository cloned to $stash/${project}-dev. We checkout the branch ${branch} ${NO_COLOR}"
     echo -e "${GREEN} ////////////////////////////////////////////////////////////////////////////////////////////////////////////////"
  }
 
@@ -95,6 +135,7 @@ git --version
 create_directories
 fetch_stash_repository
 checks
+
 echo -e "${GREEN} ////////////////////////////////////////////////////////////////////////////////////////////////////////////////"
 echo -e "${GREEN} // https://farcaov@webgate.ec.europa.eu/CITnet/stash/scm/multisite/${project}-dev.git"
 echo -e "${GREEN} ////////////////////////////////////////////////////////////////////////////////////////////////////////////////"

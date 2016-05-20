@@ -16,7 +16,7 @@ echo "${CYAN}Initiating preparing $project for QA.${NO_COLOR}"
 
 # Basic variables.
 username="farcaov"
-webroot="/home/farcaov/www/"
+webroot="/home/${username}/www"
 stash="${webroot}/stash"
 reports="${webroot}/reports"
 
@@ -81,7 +81,8 @@ function fetch_stash_repository ()
 function code_standards ()
 {
   cd $stash/${project}-dev
-  ~/drustalls/check_coding_standards . >  ~/www/reports/report_sniff_${project}_${branch}_$(date +'%F.%Hm%m%S').report 2>&1
+  echo "Report paths: ${reports}"
+  ~/drustalls/check_coding_standards . >  ${reports}/sniff_${project}_${branch}_$(date +'%D').report 2>&1
 }
 
 
@@ -91,7 +92,7 @@ echo -e "${CYAN}   Spot debug functions."
 grep -Irin --color --exclude-dir="contrib" 'debug(\|dpm(\|dsm(\|dpq(\|kpr(\|print_r(\|var_dump(\|dps(' . 
 
 echo -e "${CYAN}   Inspect function prefixes.${NO_COLOR}"
-grep -Irin --color 'function' > ~/check.function.report
+grep -Irin --color 'function' > ${reports}/functions_${project}_${branch}_$(date + '%F-%H%M%S').report 2>&1
 
 echo -e "${CYAN}   Spot if error messages region was hidden. 5 line context included.${NO_COLOR}"
 grep -Irin -A 1 -B 1 --color '$message' --include="*.tpl.php" .
@@ -114,7 +115,7 @@ echo -e "${CYAN}   Security checks.${NO_COLOR}"
 echo -e "${GREEN} ////////////////////////////////////////////////////////////////////////////////////////////////////////////////${NO_COLOR}"
 
 echo -e "${CYAN} Cross site scripting XSS.${NO_COLOR}"
-grep --color -i -r "\$_GET" * | grep "echo"
+grep --color -ir '\$_GET' * | grep "echo"
 
 echo -e "${CYAN} Command injection.${NO_COLOR}"
 

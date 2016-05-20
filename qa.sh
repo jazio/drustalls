@@ -11,6 +11,11 @@ read branch
 
 echo "${CYAN}Initiating preparing $project for QA.${NO_COLOR}"
 
+username="farcaov"
+webroot="/home/farcaov/www/"
+stash="${webroot}/stash"
+reports="${webroot}/reports"
+
 # Colors. 0 = Normal; 1 = Bold.
 RED=$'\e[1;31m'
 GREEN=$'\e[0;32m'
@@ -18,23 +23,16 @@ YELLOW=$'\e[0;33m'
 BLUE=$'\e[0;34m'
 MAGENTA=$'\e[0;35m'
 CYAN=$'\e[0;36m'
-NO_COLOR=$'\e[0m'
-
 # Check there is a temp folder or create it.
 function create_directories ()
 {
    cd $webroot
-   if [ ! -d "$tmp" ]; then
-       mkdir $tmp
-       chmod -R u+rwx $tmp
-       cd $tmp
-       mkdir $project
-   elif [ ! -d "$svn" ]; then
-       mkdir $svn
-       chmod -R u+rwx $svn
-   elif [ ! -d "$stash" ]; then
-       mkdir $stash
-       chmod -R u+rwx $stash
+   if [ ! -d "$stash" ]; then
+       mkdir -p ${stash}
+       chmod u+rwx -R ${stash}
+   elif [ ! -d "$reports" ]; then
+       mkdir -p ${reports}
+       chmod u+rwx -R ${reports}
    else
        echo "All required folders are created."
    fi
@@ -75,7 +73,11 @@ function fetch_stash_repository ()
     echo -e "${GREEN} ////////////////////////////////////////////////////////////////////////////////////////////////////////////////"
  }
 
-
+function code_standards ()
+{
+  cd $stash/${project}-dev
+  ~/drustalls/check_coding_standards . >  ~/www/reports/report_sniff_${project}_${branch}_$(date +'%F.%Hm%m%S').report 2>&1
+}
 
 function checks ()
 {
@@ -111,14 +113,13 @@ grep --color -i -r "\$_GET" * | grep "echo"
 
 echo -e "${CYAN} Command injection.${NO_COLOR}"
 ## declare an array variable
-declare -a arr=("eval(" "fopen(" "passthru(" "exec(" "proc_" "dl(" "require($" "require_once($" "include($" "include_once($" "include($" "query(")
+  declare -a arr=("eval(" "fopen(" "passthru(" "exec(" "proc_" "dl(" "require($" "require_once($" "include($" "include_once($" "include($" "query(")
 
-## now loop through the above array
-for i in "${arr[@]}"
-do
-   # loop over code dangerous commands
-   find . | grep "php$" | xargs grep -s "$i"
-done
+  for i in "${arr[@]}"
+    do
+      # Spot dangerous commands.
+      find . | grep "php$" | xargs grep -s "$i"
+    done
 
 # You can access them using echo "${arr[0]}", "${arr[1]}" also
 
@@ -135,8 +136,9 @@ git --version
 create_directories
 fetch_stash_repository
 checks
+code_standards
 
-echo -e "${GREEN} ////////////////////////////////////////////////////////////////////////////////////////////////////////////////"
+ -e "${GREEN} ////////////////////////////////////////////////////////////////////////////////////////////////////////////////"
 echo -e "${GREEN} // https://farcaov@webgate.ec.europa.eu/CITnet/stash/scm/multisite/${project}-dev.git"
 echo -e "${GREEN} ////////////////////////////////////////////////////////////////////////////////////////////////////////////////"
 

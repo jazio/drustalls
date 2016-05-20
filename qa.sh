@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
+# The script automatize some of the QA checkrules over Drupal projects.
 # author: Ovi Farcas.
+# version: 1.0
+
 echo -n "Type the site machine-name: "
 read project
 
@@ -11,6 +14,7 @@ read branch
 
 echo "${CYAN}Initiating preparing $project for QA.${NO_COLOR}"
 
+# Basic variables.
 username="farcaov"
 webroot="/home/farcaov/www/"
 stash="${webroot}/stash"
@@ -23,7 +27,8 @@ YELLOW=$'\e[0;33m'
 BLUE=$'\e[0;34m'
 MAGENTA=$'\e[0;35m'
 CYAN=$'\e[0;36m'
-# Check there is a temp folder or create it.
+
+# Projects are being check inside a folder therefore you can launch the script from any place.
 function create_directories ()
 {
    cd $webroot
@@ -79,6 +84,7 @@ function code_standards ()
   ~/drustalls/check_coding_standards . >  ~/www/reports/report_sniff_${project}_${branch}_$(date +'%F.%Hm%m%S').report 2>&1
 }
 
+
 function checks ()
 {
 echo -e "${CYAN}   Spot debug functions."
@@ -92,17 +98,16 @@ grep -Irin -A 1 -B 1 --color '$message' --include="*.tpl.php" .
 
 echo -e "${CYAN}   Scan base fields declared in the features files.${NO_COLOR}"
 
+# Check the field lock status and spot the non-timestamp date type fields
 declare -a arr=("$field_bases[" "locked" "datetime")
 
-## now loop through the above array
 for i in "${arr[@]}"
 do
-   # Search inside field bases the arr values
    find . | grep "field_base.inc$" | xargs grep -Irins "$i"
 done
 
-# Function prefixes
-grep -Irin '$field_bases[' --color --include *field_base.inc .
+
+grep -Irin '$field_bases[' --color --include="*field_base.inc" .
 
 echo -e "${GREEN} ////////////////////////////////////////////////////////////////////////////////////////////////////////////////"
 echo -e "${CYAN}   Security checks.${NO_COLOR}"
@@ -112,33 +117,26 @@ echo -e "${CYAN} Cross site scripting XSS.${NO_COLOR}"
 grep --color -i -r "\$_GET" * | grep "echo"
 
 echo -e "${CYAN} Command injection.${NO_COLOR}"
-## declare an array variable
-  declare -a arr=("eval(" "fopen(" "passthru(" "exec(" "proc_" "dl(" "require($" "require_once($" "include($" "include_once($" "include($" "query(")
 
+  declare -a arr=("eval(" "fopen(" "passthru(" "exec(" "proc_" "dl(" "require($" "require_once($" "include($" "include_once($" "include($" "query(")
+  # Note. You can access them using echo "${arr[0]}", "${arr[1]}"...
   for i in "${arr[@]}"
     do
       # Spot dangerous commands.
       find . | grep "php$" | xargs grep -s "$i"
     done
-
-# You can access them using echo "${arr[0]}", "${arr[1]}" also
-
-#grep -ir "exec\(" --exclude="*.min.js" .
-#grep -ir "eval\(" --exclude="*.min.js" .
-
-
 }
 
+# Runtime.
 check_input "${project}"
 check_input "${branch}"
 git --version
-
 create_directories
 fetch_stash_repository
 checks
 code_standards
 
- -e "${GREEN} ////////////////////////////////////////////////////////////////////////////////////////////////////////////////"
+echo -e "${GREEN} ////////////////////////////////////////////////////////////////////////////////////////////////////////////////"
 echo -e "${GREEN} // https://farcaov@webgate.ec.europa.eu/CITnet/stash/scm/multisite/${project}-dev.git"
 echo -e "${GREEN} ////////////////////////////////////////////////////////////////////////////////////////////////////////////////"
 

@@ -68,9 +68,10 @@ function fetch_stash_repository ()
   fi
     cd ${project}-dev
     git pull
-    echo -e "${GREEN} /////////////////////////////////////////////${repoplace}//////////////////////////////////////////////////////"
-    git clean -fd
+    git checkout master
+    echo -e "${GREEN} /////////////////////////////////////////////You are on ${repoplace}!//////////////////////////////////////////////////////"
     git branch -a | grep ${branch}
+    git branch -d ${branch}-local
     git checkout -b ${branch}-local remotes/origin/${branch}
     git pull
     echo -e "${GREEN} ////////////////////////////////////////////////////////////////////////////////////////////////////////////////"
@@ -82,7 +83,7 @@ function code_standards ()
 {
   cd $stash/${project}-dev
   echo "Report paths: ${reports}"
-  ~/drustalls/check_coding_standards . >  ${reports}/sniff_${project}_${branch}_$(date +'%D').report 2>&1
+  ~/drustalls/check_coding_standards . >  ${reports}/sniff_${project}_${branch}.report 2>&1
 }
 
 
@@ -92,7 +93,7 @@ echo -e "${CYAN}   Spot debug functions."
 grep -Irin --color --exclude-dir="contrib" 'debug(\|dpm(\|dsm(\|dpq(\|kpr(\|print_r(\|var_dump(\|dps(' . 
 
 echo -e "${CYAN}   Inspect function prefixes.${NO_COLOR}"
-grep -Irin --color 'function' > ${reports}/functions_${project}_${branch}_$(date + '%F-%H%M%S').report 2>&1
+grep -Irin --color 'function' > ${reports}/functions_${project}_${branch}.report 2>&1
 
 echo -e "${CYAN}   Spot if error messages region was hidden. 5 line context included.${NO_COLOR}"
 grep -Irin -A 1 -B 1 --color '$message' --include="*.tpl.php" .

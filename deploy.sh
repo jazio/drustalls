@@ -155,9 +155,11 @@ function commit_svn ()
 {
     # todo commit only after checking if the folder not empty.
     cd $svn/$svn_repo
+    svn up
     svn add * --force
     echo "${CYAN}Here is what we do SVN commit...${NO_COLOR}"
     svn status
+    #svn diff
     echo -n "${RED} Commit folder svn $svn/$svn_repo to server ? (y/n): ${NO_COLOR}"
     read answer
 

@@ -77,7 +77,7 @@ function fetch_github_repository ()
     git remote show origin
 
     # Please choose which one is under QA analysis.
-    echo -n "Select from the above refs/pull/NUM/head which pull request NUM is under your QA analysis: "
+    echo -n "${GREEN}Select from the above refs/pull/NUM/head which pull request NUM is under your QA analysis: {NO_COLOR}"
     read branch
     
     # Get the requested pullrequest and park it under local repository.
@@ -111,7 +111,7 @@ function checks ()
  echo -e "Switched to build folder."
  # Coding standards report.
  ./bin/phpcs . > ${reports}/sniff_${project}_${branch}.report 2>&1
- echo -e "Your report has been generated to ${reports}/sniff_${project}_${branch}.report"
+ echo -e "${GREEN}//// Your report has been generated to ${reports}/sniff_${project}_${branch}.report // ${NO_COLOR}"
 
 echo -e "${CYAN}   Spot debug functions."
 grep -Irin --color --exclude-dir="contrib" 'debug(\|dpm(\|dsm(\|dpq(\|kpr(\|print_r(\|var_dump(\|dps(' . 
@@ -161,6 +161,5 @@ checks
 
 
 echo -e "${GREEN} ////////////////////////////////////////////////////////////////////////////////////////////////////////////////"
-echo -e "${GREEN} // End of job.
+echo -e "${GREEN} // End of job."
 echo -e "${GREEN} ////////////////////////////////////////////////////////////////////////////////////////////////////////////////"
-

@@ -6,18 +6,18 @@
 echo -n "Type the site machine-name: "
 read project
 
-#echo -n "Is it on stash or github: "
-#read repoplace
+echo -n "Is it on stash or github: "
+read repoplace
 
-#echo -n "Type the complete branch name to perform qa on e.g feature/MULTISITE-1234, or develop: "
-#read branch
+echo -n "Type the complete branch name to perform qa on e.g feature/MULTISITE-1234, or develop: "
+read branch
 
-echo "////////////////////////   Initiating preparing $project for QA. //////////////////////////////"
+echo "${CYAN}Initiating preparing $project for QA.${NO_COLOR}"
 
 # Basic variables.
 username="farcaov"
 webroot="/home/${username}/www"
-github="${webroot}/github"
+stash="${webroot}/stash"
 reports="${webroot}/reports"
 
 # Colors. 0 = Normal; 1 = Bold.
@@ -27,16 +27,14 @@ YELLOW=$'\e[0;33m'
 BLUE=$'\e[0;34m'
 MAGENTA=$'\e[0;35m'
 CYAN=$'\e[0;36m'
-NO_COLOR=$'\e[0m'
-
 
 # Projects are being check inside a folder therefore you can launch the script from any place.
 function create_directories ()
 {
    cd $webroot
-   if [ ! -d "$github" ]; then
-       mkdir -p ${github}
-       chmod u+rwx -R ${github}
+   if [ ! -d "$stash" ]; then
+       mkdir -p ${stash}
+       chmod u+rwx -R ${stash}
    elif [ ! -d "$reports" ]; then
        mkdir -p ${reports}
        chmod u+rwx -R ${reports}
@@ -57,62 +55,40 @@ function check_input () {
   fi
 }
 
-function fetch_github_repository ()
+function fetch_stash_repository ()
 {
-  cd $github
-    
-  if [ ! -d "$github/${project}-reference" ]; then
-       git clone https://github.com/ec-europa/${project}-reference.git
+  cd $stash
+  
+  if [ ! -d "$stash/${project}-dev" ]; then
+    if [ $repoplace == *"github"* ]; then
+       git clone https://github.com/ec-europa/${project}-dev.git
+    else
+       git clone https://${username}@webgate.ec.europa.eu/CITnet/stash/scm/multisite/${project}-dev.git
+    fi
   fi
-    cd ${project}-reference
-    # Memorize the credentials in the session cache.
-    git config --global credential.helper cache
-    # Update master.
-    git pull origin master
-
-    # Configuration for including originated pull request branch in your local repository.
-    git config --global --add remote.origin.fetch "+refs/pull/*/head:refs/remotes/origin/pr/*"
-     
-    # Now you can see originated[remote] pull requests.
-    git remote show origin
-
-    # Please choose which one is under QA analysis.
-    echo -n "Select from the above refs/pull/NUM/head which pull request NUM is under your QA analysis: "
-    read branch
-    
-    # Get the requested pullrequest and park it under local repository.
-    git fetch origin 
-    ${branch}=pr/${branch}
-    git checkout pr/${branch}
-
+    cd ${project}-dev
+    git pull
+    git checkout master
+    echo -e "${GREEN} /////////////////////////////////////////////You are on ${repoplace}!//////////////////////////////////////////////////////"
     git branch -a | grep ${branch}
     git branch -d ${branch}-local
-    git checkout -b ${branch}-local
-    git log -3 --oneline --decorate --graph
+    git checkout -b ${branch}-local remotes/origin/${branch}
+    git pull
     echo -e "${GREEN} ////////////////////////////////////////////////////////////////////////////////////////////////////////////////"
-    echo "${YELLOW}   Reference repository cloned to $github/${project}-reference but we parked the originated branch to be analysed ${branch} ${NO_COLOR}"
+    echo "${YELLOW}   Reference repository cloned to $stash/${project}-dev. We checkout the branch ${branch} ${NO_COLOR}"
     echo -e "${GREEN} ////////////////////////////////////////////////////////////////////////////////////////////////////////////////"
  }
 
-function build ()
+function code_standards ()
 {
-  cd $github/${project}-reference/
-  composer install
-  chmod +x vendor/ec-europa/${project}/post-install.sh
-  cp build.properties.dist build.properties.local
-  sed -i 's/composer.phar/\/usr\/bin\/composer/g' build.properties.local
-  ./bin/phing build-dist
+  cd $stash/${project}-dev
+  echo "Report paths: ${reports}"
+  ~/drustalls/check_coding_standards .
 }
 
 
 function checks ()
 {
- cd $github/${project}-reference/build/
- echo -e "Switched to build folder."
- # Coding standards report.
- ./bin/phpcs . > ${reports}/sniff_${project}_${branch}.report 2>&1
- echo -e "Your report has been generated to ${reports}/sniff_${project}_${branch}.report"
-
 echo -e "${CYAN}   Spot debug functions."
 grep -Irin --color --exclude-dir="contrib" 'debug(\|dpm(\|dsm(\|dpq(\|kpr(\|print_r(\|var_dump(\|dps(' . 
 
@@ -154,13 +130,14 @@ echo -e "${CYAN} Command injection.${NO_COLOR}"
 
 # Runtime.
 check_input "${project}"
+check_input "${branch}"
+git --version
 create_directories
-fetch_github_repository
-build
+fetch_stash_repository
 checks
-
+code_standards
 
 echo -e "${GREEN} ////////////////////////////////////////////////////////////////////////////////////////////////////////////////"
-echo -e "${GREEN} // End of job.
+echo -e "${GREEN} // https://farcaov@webgate.ec.europa.eu/CITnet/stash/scm/multisite/${project}-dev.git"
 echo -e "${GREEN} ////////////////////////////////////////////////////////////////////////////////////////////////////////////////"
 

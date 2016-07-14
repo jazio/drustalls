@@ -1,6 +1,6 @@
 #t !/usr/bin/env bash
 # author: Ovi Farcas.
-
+# @todo adapt to github and starter-kit
 echo -n "Type JIRA ticket e.g. MULTISITE-1234: "
 read jira
 

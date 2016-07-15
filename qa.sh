@@ -108,7 +108,7 @@ function checks ()
  echo -e "Switched to build folder."
 
  # Coding standards report.
- .././bin/phpcs . > ${reports}/sniff_${project}_${branch}.report 2>&1
+ .././bin/phpcs . > ${reports}/${project}_${branch}_code_violations.report 2>&1
  
  echo -e "${GREEN}//// Your report has been generated to ${reports}/sniff_${project}_${branch}.report /// ${NO_COLOR}"
 
@@ -116,7 +116,9 @@ function checks ()
  grep -Irin --color --exclude-dir="contrib" 'debug(\|dpm(\|dsm(\|dpq(\|kpr(\|print_r(\|var_dump(\|dps(' . 
 
  echo -e "${CYAN}   Inspect function prefixes.${NO_COLOR}"
- grep -Irin --color 'function'
+ grep -Irin --color 'function' --exclude="*.js" > ${reports}/${project}_functions.report 2>&1
+
+ #todo check for the info files
 
  echo -e "${CYAN}   Spot if error messages region was hidden. 5 line context included.${NO_COLOR}"
  grep -Irin -A 1 -B 1 --color '$message' --include="*.tpl.php" .

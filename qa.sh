@@ -6,12 +6,6 @@
 echo -n "Type the site machine-name: "
 read project
 
-#echo -n "Is it on stash or github: "
-#read repoplace
-
-#echo -n "Type the complete branch name to perform qa on e.g feature/MULTISITE-1234, or develop: "
-#read branch
-
 echo "////////////////////////   Initiating preparing $project for QA. //////////////////////////////"
 
 # Basic variables.
@@ -65,8 +59,10 @@ function fetch_github_repository ()
        git clone https://github.com/ec-europa/${project}-reference.git
   fi
     cd ${project}-reference
+
     # Memorize the credentials in the session cache.
     git config --global credential.helper cache
+
     # Update master.
     git pull origin master
 
@@ -77,7 +73,7 @@ function fetch_github_repository ()
     git remote show origin
 
     # Please choose which one is under QA analysis.
-    echo -n "${GREEN}Select from the above refs/pull/NUM/head which pull request NUM is under your QA analysis: {NO_COLOR}"
+    echo -n "${GREEN}Select from the above refs/pull/NUM/head which pull request NUM is under your QA analysis: ${NO_COLOR}"
     read branch
     
     # Get the requested pullrequest and park it under local repository.
@@ -89,8 +85,9 @@ function fetch_github_repository ()
     git branch -d ${branch}-local
     git checkout -b ${branch}-local
     git log -3 --oneline --decorate --graph
+
     echo -e "${GREEN} ////////////////////////////////////////////////////////////////////////////////////////////////////////////////"
-    echo "${YELLOW}   Reference repository cloned to $github/${project}-reference but we parked the originated branch to be analysed ${branch} ${NO_COLOR}"
+    echo -e "${YELLOW}  Cloned $github/${project}-reference then we parked the originated branch to be analysed: ${branch} ${NO_COLOR}"
     echo -e "${GREEN} ////////////////////////////////////////////////////////////////////////////////////////////////////////////////"
  }
 
@@ -98,7 +95,7 @@ function build ()
 {
   cd $github/${project}-reference/
   composer install
-  chmod +x vendor/ec-europa/${project}/post-install.sh
+  chmod +x vendor/ec-europa/reps-platform/post-install.sh
   cp build.properties.dist build.properties.local
   sed -i 's/composer.phar/\/usr\/bin\/composer/g' build.properties.local
   ./bin/phing build-dist
@@ -109,39 +106,41 @@ function checks ()
 {
  cd $github/${project}-reference/build/
  echo -e "Switched to build folder."
+
  # Coding standards report.
- ./bin/phpcs . > ${reports}/sniff_${project}_${branch}.report 2>&1
- echo -e "${GREEN}//// Your report has been generated to ${reports}/sniff_${project}_${branch}.report // ${NO_COLOR}"
+ .././bin/phpcs . > ${reports}/sniff_${project}_${branch}.report 2>&1
+ 
+ echo -e "${GREEN}//// Your report has been generated to ${reports}/sniff_${project}_${branch}.report /// ${NO_COLOR}"
 
-echo -e "${CYAN}   Spot debug functions."
-grep -Irin --color --exclude-dir="contrib" 'debug(\|dpm(\|dsm(\|dpq(\|kpr(\|print_r(\|var_dump(\|dps(' . 
+ echo -e "${CYAN}   Spot debug functions."
+ grep -Irin --color --exclude-dir="contrib" 'debug(\|dpm(\|dsm(\|dpq(\|kpr(\|print_r(\|var_dump(\|dps(' . 
 
-echo -e "${CYAN}   Inspect function prefixes.${NO_COLOR}"
-grep -Irin --color 'function'
+ echo -e "${CYAN}   Inspect function prefixes.${NO_COLOR}"
+ grep -Irin --color 'function'
 
-echo -e "${CYAN}   Spot if error messages region was hidden. 5 line context included.${NO_COLOR}"
-grep -Irin -A 1 -B 1 --color '$message' --include="*.tpl.php" .
+ echo -e "${CYAN}   Spot if error messages region was hidden. 5 line context included.${NO_COLOR}"
+ grep -Irin -A 1 -B 1 --color '$message' --include="*.tpl.php" .
 
-echo -e "${CYAN}   Scan base fields declared in the features files.${NO_COLOR}"
+ echo -e "${CYAN}   Scan base fields declared in the features files.${NO_COLOR}"
+ 
+ # Check the field lock status and spot the non-timestamp date type fields
+ declare -a arr=("$field_bases[" "locked" "datetime")
 
-# Check the field lock status and spot the non-timestamp date type fields
-declare -a arr=("$field_bases[" "locked" "datetime")
-
-for i in "${arr[@]}"
-do
+ for i in "${arr[@]}"
+ do
    find . | grep "field_base.inc$" | xargs grep -Irins "$i"
-done
+ done
 
-grep -Irin '$field_bases[' --color --include="*field_base.inc" .
+ grep -Irin '$field_bases[' --color --include="*field_base.inc" .
 
-echo -e "${GREEN} ////////////////////////////////////////////////////////////////////////////////////////////////////////////////"
-echo -e "${CYAN}   Security checks.${NO_COLOR}"
-echo -e "${GREEN} ////////////////////////////////////////////////////////////////////////////////////////////////////////////////${NO_COLOR}"
+ echo -e "${GREEN} ////////////////////////////////////////////////////////////////////////////////////////////////////////////////"
+ echo -e "${CYAN}   Security checks.${NO_COLOR}"
+ echo -e "${GREEN} ////////////////////////////////////////////////////////////////////////////////////////////////////////////////${NO_COLOR}"
 
-echo -e "${CYAN} Cross site scripting XSS.${NO_COLOR}"
-grep --color -ir '\$_GET' * | grep "echo"
+ echo -e "${CYAN} Cross site scripting XSS.${NO_COLOR}"
+ grep --color -ir '\$_GET' * | grep "echo"
 
-echo -e "${CYAN} Command injection.${NO_COLOR}"
+ echo -e "${CYAN} Command injection.${NO_COLOR}"
 
   declare -a arr=("eval(" "fopen(" "passthru(" "exec(" "proc_" "dl(" "require($" "require_once($" "include($" "include_once($" "include($" "query(")
   # Note. You can access them using echo "${arr[0]}", "${arr[1]}"...

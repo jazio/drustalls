@@ -1,0 +1,62 @@
+#!/bin/bash
+# author: Ovi Farcas.
+
+echo -n "Build - site name: "
+read site
+
+
+if [ -d ${site} ]; then
+echo -n "Site ${site} exists. "
+echo -n "Use folder y/n ? "
+read keep
+fi
+
+if [ "$keep" == n ]; then
+  mkdir ${site}
+  cd ${site}
+  git pull
+else
+ echo "Create fresh install. "
+  git clone https://github.com/ec-europa/${site}-reference.git ${site}
+  cd ${site}
+fi
+
+
+
+
+# Check there is a temp folder or create it.
+function build ()
+{
+  cd ${site}
+  composer install
+  cp build.properties.dist build.properties.local
+  #subl .
+
+
+
+  sed -i "s|drupal.db.name = db_name|drupal.db.name = ${site}|g" build.properties.local
+  sed -i 's|drupal.db.user = root|drupal.db.user = admin|g' build.properties.local
+  sed -i 's|drupal.db.password =|drupal.db.password = password|g' build.properties.local
+  sed -i 's|composer.phar|/usr/local/bin/composer|g' build.properties.local
+  sed -i 's|subsite.install.modules = myproject_core|subsite.install.modules = devel|g' build.properties.local
+
+  alias phing='./bin/phing'
+  ./bin/phing
+  ./bin/phing build-dev
+  chmod 775 -R resources/scripts/composer/post-install.sh
+  ./bin/phing install-dev
+
+   cd platform
+   dir=$(pwd)
+   sed -i 's|# RewriteBase /drupal|RewriteBase dir|g' build.properties.local
+
+}
+l
+if [ "$keep" == n ]; then
+  drush sql-dump --result-file="./${site}..sql"
+  drush sql-drop
+  drush sql-cli < ../../db/${site}.sql
+  drush rr
+fi
+
+build

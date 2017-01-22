@@ -1,24 +1,30 @@
 #!/bin/bash
 # author: Ovi Farcas.
 
+# debug
+#set -x
+
+# change it if differs.
+base_path=http://localhost
+
 echo -n "Build - site name: "
 read site
-
+keep="n"
 
 if [ -d ${site} ]; then
-echo -n "Site ${site} exists. "
-echo -n "Use folder y/n ? "
-read keep
+ echo -n "Site ${site} exists. "
+ echo -n "keep ${site} folder y/n ? "
+ read keep
 fi
 
-if [ "$keep" == n ]; then
-  mkdir ${site}
-  cd ${site}
-  git pull
-else
- echo "Create fresh install. "
+if [ "$keep" == "n" ]; then
+  echo "Create fresh install. "
+  mkdir -p ${site}
   git clone https://github.com/ec-europa/${site}-reference.git ${site}
   cd ${site}
+else
+  cd ${site}
+  git pull
 fi
 
 
@@ -48,15 +54,25 @@ function build ()
 
    cd platform
    dir=$(pwd)
-   sed -i 's|# RewriteBase /drupal|RewriteBase dir|g' build.properties.local
+   echo "Current directory is ${dir}"
+   sed -i "s|# RewriteBase /drupal|RewriteBase ${dir}|g" .htaccess
 
 }
-l
-if [ "$keep" == n ]; then
+
+function import_db ()
+{
+if [ "$keep" == "n" ]; then
   drush sql-dump --result-file="./${site}..sql"
-  drush sql-drop
+  drush sql-drop -y
   drush sql-cli < ../../db/${site}.sql
+  drush updb -y
   drush rr
+  cd ${site}
+  echo -e "Generated superuser link:"
+  drush uli --uri=${base_path}/${site}/platform
 fi
+}
 
 build
+import_db
+echo -e "Done."

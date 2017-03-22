@@ -1,7 +1,11 @@
-# Author: Ovi Farcas
+#!/usr/bin/env bash
+#############################################################
+# Scope: Deploy a specific project's branch into acceptance
+# Author: @jazio
+#############################################################
 
 # debug on/off.
-set -x
+# set -x
 
 
 # Colors. 0 = Normal; 1 = Bold.
@@ -15,21 +19,20 @@ NO_COLOR=$'\e[0m'
 
 # Set up connection.
 source ~/.proxyrc
-echo -e "${GREEN} Proxy connection set. ${NO_COLOR}"
+echo -e "${CYAN} Proxy connection set. ${NO_COLOR}"
 
-
-# Variables
-home_path=/ec/local/home/fpfis-test
-multisite_path=/ec/local/home/fpfis-test/reference/php-clusters/multisite/stresstest/cluster00/sources/multisite/multisite_master_test.2.2/sites/
+echo "${GREEN}  ////////////////////////   Initiating preparing project for Acceptance. ////////////////////////////// ${NO_COLOR}"
 
 
 
-echo "${GREEN}  ////////////////////////   Initiating preparing $project for Acceptance . //////////////////////////////"
+
 echo -n "State your username: "
 read username
+
 echo -n "State your site name e.g. growth: "
 read site
 
+# Create user specific folder.
 function create_directories ()
 {
    cd $home_path
@@ -37,10 +40,60 @@ function create_directories ()
        mkdir -p ${username}
        chmod u+rwx -R ${username}
    else
-       echo "Required username folders already created."
+       echo "${GREEN} Required $username folder already created. ${NO_COLOR}"
    fi
+}
 
-   cd $home_path/$username
+
+# Configuration file.
+
+  home_path=$(echo $HOME)
+  my_home_path = ${home_path}/${username}
+  echo "Your current home is ${my_home_path}"
+
+  # Default variables.
+  multisite_path=/ec/local/home/fpfis-test/reference/php-clusters/multisite/stresstest/cluster00/sources/multisite/multisite_master_test.2.2/sites/
+  my_branch=master
+  github_username=ec-europa
+
+  # /ec/local/home/fpfis/util/php/current/bin/composer
+
+  composer_path=$(which composer)
+
+  cd ${my_home_path}
+
+  # Create and construct configuration.
+  if [ ! -f acceptance.conf ]; then
+         touch -p acceptance.conf
+         chmod u+rwx -R ${username}
+         echo username=${username} > acceptance.conf
+         echo site=${site} >> acceptance.conf
+         echo my_home_path=${my_home_path} >> acceptance.conf
+         echo multisite_path=${multisite_path} >> acceptance.conf
+         echo my_branch=${my_branch} >> acceptance.conf
+         echo github_username=${github_username} >> acceptance.conf
+         echo composer_path=${composer_path} >> acceptance.conf
+  else
+       echo "Your configuration is as follows"
+       cat acceptance.conf
+  fi
+
+  echo "Do you want to edit your configuration file? y/N"
+  read edit
+
+    if [ "$edit" == "y" ]; then
+            echo "Edit configuration and relaunch the script"
+            exit
+    else
+      # Load configuration.
+      source acceptance.conf
+    fi
+
+
+
+function clone()
+{
+   cd ${my_home_path}
 
    if [ ! -d "$site" ]; then
         git clone https://github.com/ec-europa/${site}-reference.git ${site}
@@ -55,20 +108,22 @@ function create_directories ()
 # Build platform.
 function build ()
 {
-  cd ${site}
+  cd ${my_home_path}/${site}
 
-  git branch -a
-  echo "State the develop branch name to build: "
-  read deploybranch
-  git checkout deploybranch
+  git checkout  ${branch}
+
   echo -e "${GREEN} Build start. ${NO_COLOR}"
   composer install
+
+  # Set permission on platform post-install.
+  chmod -R 777 vendor/ec-europa/reps-platform/post-install.sh
+
   cp build.properties.dist build.properties.local
 
   sed -i "s|drupal.db.name = db_name|drupal.db.name = ${site}|g" build.properties.local
   sed -i 's|drupal.db.user = root|drupal.db.user = admin|g' build.properties.local
   sed -i 's|drupal.db.password =|drupal.db.password = password|g' build.properties.local
-  sed -i 's|composer.phar|/usr/local/bin/composer|g' build.properties.local
+  sed -i 's|composer.phar|{$composer_path}|g' build.properties.local
   sed -i 's|subsite.install.modules = myproject_core|subsite.install.modules = devel|g' build.properties.local
 
   alias phing='./bin/phing'
@@ -86,18 +141,30 @@ function copy_acceptance ()
             rm -rf ""
     fi
 
-    cp -fr ${home_path}/${username}/{site}-reference/build/modules/features/ ./modules/
-    cp -fr ${home_path}/${username}/{site}-reference/build/libraries/ ./
-    cp -fr ${home_path}/${username}/{site}-reference/build/themes/ ./
+    cp -fr ${my_home_path}/{site}/build/modules/ ./modules/
+    cp -fr ${my_home_path}/{site}/build/libraries/ ./
+    cp -fr ${my_home_path}/{site}/build/themes/ ./
+
+    git status
+    # Push to the load balancers.
+    gacp
 }
 
-create_directories
+
+function clean_cache () {
+ cd ${multisite_path}/${site}
+ drush rr
+ echo -e "${GREEN} ////////////////////////////////////////////////////////////////////////////////////////////////////////////////"
+ echo -e "${GREEN}  Your site is ready at https://webgate.acceptance.ec.europa.eu/multisite/${site} ${NO_COLOR}"
+ echo -e "${GREEN} ////////////////////////////////////////////////////////////////////////////////////////////////////////////////"
+}
+
+# Run time.
+create_configuration
+clone
 build
 copy_acceptance
+clean_cache
 
-# Push things to the balancers.
-#gacp
 
-echo -e "${GREEN} ////////////////////////////////////////////////////////////////////////////////////////////////////////////////"
-echo -e "${GREEN}  https://webgate.acceptance.ec.europa.eu/multisite/${site} ${NO_COLOR}"
-echo -e "${GREEN} ////////////////////////////////////////////////////////////////////////////////////////////////////////////////"
+
